@@ -125,7 +125,6 @@ s.add_rule('update',
 # Get connections from nearest input node
 # could put something in parent to help?
 # for now just connect if close, limit to one connection
-# TODO: think this needs to be other.name??
 s.add_rule('incoming',
            "other.name == 'stim_point'",
            "dist((other.x, other.y), ($x, $y)) < 5" # ???

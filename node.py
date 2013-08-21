@@ -26,6 +26,8 @@ class Node(object):
           than init'ing everywhere, just check in one place if 
           something has been added to init_list and re-init if so
           (maybe even just re-init addition)
+    TODO: What to do about stepping? Possible that something updates its output
+          before another thing reads it for that step...
     """
 
     def __init__(self, parent, *args):
