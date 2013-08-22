@@ -25,6 +25,16 @@ class Context(object):
           think about that way.
     TODO: For the functions that are assumed to take self.focus, could add
           *args for optionally specifying constraints
+    TODO: Might be useful to allow something like "get_constraints" and could
+          attempt to connect something and would return a set of appropariate 
+          constraints...so users could just connect things in GUI and then
+          would properly add constraints so things could be copied...
+    TODO: Also have "global connect" thing where everything is told to connect
+          with everything? and presumably only 'correct' connections happen.
+    TODO: Add a context version of filter_nodes that takes *args?
+    TODO: Would things be easier if even stored rules just as strings, and only
+          'evaluate' when you actually needed them? Then probably wouldn't need
+          objects for these things at all.
     """
 
 
@@ -137,16 +147,23 @@ class Context(object):
         # get leaves of source and target
         source_leaves = source.get_leaves()
         target_leaves = target.get_leaves()
+        #print source_leaves
         # connect anyone that wants to be connected
         for s in source_leaves:
             for t in target_leaves:
                 # note that in each instance you pass an 'other'
-                s_c = any([rule.satisfied_by(t, s) for rule in s.out_rules])
-                t_c = any([rule.satisfied_by(s, t) for rule in t.in_rules])
+                # THINK THIS IS WRONG - shouldn't it be 'all(...)'?
+                s_c = any([rule.satisfied_by(s, t) for rule in s.out_rules])
+                t_c = any([rule.satisfied_by(t, s) for rule in t.in_rules])
                 # TODO: Instead of disjunction, could do conjunction unless
                 # either has no rules specified, in which case disjunction? So 
                 # basically just connect if all existing rules are satisfied...
+                print 'comparing nodes'
+                print s.name
+                print t.name
                 if s_c or t_c:
+                    # TODO: make print node attributes once...do that
+                    print 'connection made!'
                     s.cg.add_edge(s,t)
 
 

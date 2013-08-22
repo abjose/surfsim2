@@ -127,13 +127,13 @@ s.add_rule('update',
 # for now just connect if close, limit to one connection
 s.add_rule('incoming',
            "other.name == 'stim_point'",
-           "dist((other.x, other.y), ($x, $y)) < 5" # ???
-           "len($get_predecessors()) == 0") 
+           "dist((other.x, other.y), ($x, $y)) < 10",
+           "len($get_predecessors()) < 1") # ugly-ish
 
 # want to make connection to BCM's sum node
 s.add_rule('outgoing',
-           '$name == "sum"', 
-           "$parent() == other.parent()") # hmm, verify have same parent?
+           'other.name == "sum"', 
+           "$parent() == other.parent()") 
 
 # set up sum
 s.set_focus('parent')
@@ -175,23 +175,18 @@ s.add_rule('update',
 s.reinitialize()
 
 # make connections between necessary populations
-# set focus to root because I don't remember where I am
-s.set_focus('root')
-
-# can do connetion from here? again, would be nice to allow
-# "relative connection" to constrain things - 
-# for example could do
-#s.connect(["$name == root.stim"], 
-#          ["$name == root.gcm.bcm"])
-
-# but I guess now will be something like
-#s.connect(['$name == "stim"'], 
-#          ['$name == "bcm"'])
-# which seems ok...
-
 
 # connect stim_points to biphasics
+s.connect(['$name == "stim_point"'], 
+          ['$name == "biphasic"']) 
+# alternately could connect stim and bcm? or any combination...
+# TODO: see if ^ works the same
 
 # connect biphasics to sums
+s.connect(['$name == "biphasic"'], 
+          ['$name == "sum"'])
 
-# connect sums to 
+# connect sums to thresh
+s.connect(['$name == "sum"'], 
+          ['$name == "thresh"'])
+

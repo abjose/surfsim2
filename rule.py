@@ -16,6 +16,7 @@ from utils import *
 #       or just check automatically? somehow
 # TODO: consider implementing __call__ to evaluate thing...
 # TODO: also maybe have __repr__ for printing original string
+# TODO: FREAKIN' ADD PRINT STUFF, MANNNN
 
 class Constraint(object):
     
@@ -26,6 +27,9 @@ class Constraint(object):
         self.checker = None
         # Note: must call init_check before use of constraints
     
+    #def __repr__(self):
+    #    return str(self.c)
+
     def init_check(self):
         # convert constraints to something that can be called in check
         # could get rid of this and just save 'compiled' string
@@ -39,8 +43,16 @@ class Constraint(object):
         if self.checker == None:
             # should just try to initialize here?
             self.init_check()
+            # TODO: is this a problem? could it possibly need to be init'd when
+            #       self.checker != None?
             #raise Exception('Constraint not initialized!')
-        return eval(self.checker)
+        result = None
+        #print self.c
+        # TODO: why, when you print self.c here, are there so many repetitions?
+        try: result = eval(self.checker)
+        except Exception, e:
+            raise Exception("Can't eval " + str(self.c) + ' because ' + str(e))
+        return result 
 
 class ExecStep(object):
     # TODO: this is almost identical to Constraint...how to combine/reuse code?
@@ -50,9 +62,13 @@ class ExecStep(object):
 
     # TODO: this would be a good candidate for using kwargs instead of strings?
 
+    #def __repr__(self):
+    #    return str(self.i)
+
     def init_cmd(self):
         I = '\n'.join(self.i)
-        I = I.replace('$', 'node.')
+        #I = I.replace('$', 'node.')
+        I = I.replace('$', 'self.')
         self.cmd = compile(I, '<string>', 'exec')
         
     def execute(self, node):

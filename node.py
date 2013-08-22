@@ -1,8 +1,11 @@
 
 import networkx as nx
+import matplotlib.pyplot as plt
 import numpy    as np
+import pprint
 
-import utils
+
+from utils import * # try to remove...
 from rule import ExecStep, Constraint
 
 class Node(object):
@@ -38,7 +41,8 @@ class Node(object):
         self.hg = parent.hg if parent != None else nx.DiGraph()
         # insert self into graphs, link to parent in hierarchy
         self.cg.add_node(self)
-        self.hg.add_edge(parent, self)        
+        if parent != None:
+            self.hg.add_edge(parent, self)        
         # procedures for init and update - lists of ExecSteps
         self.init_steps   = [ExecStep(list(args))] if args else [] # run on init
         self.update_steps = [] # run every iteration
@@ -59,7 +63,10 @@ class Node(object):
     def initialize(self):
         print 'INITIALIZING:'
         for step in self.init_steps:
-            step.execute(self)
+            #step.execute(self)
+            print '\t', step
+            step.init_cmd()
+            exec(step.cmd) # uggggly
 
     def reinitialize(self):
         """ Initialize self and tell children to reinitialize too. """
@@ -128,10 +135,13 @@ class Node(object):
     def get_leaves(self):
         """ Return list of leaves rooted at this node in hierarchy. """
         children = self.get_children()
-        if children == None:
-            return self
+        #print children
+        if not children:
+            #print "returning self"
+            return [self]
         else:
-            return [l for l in c.get_leaves() for c in children]
+            #print "not returning self..."
+            return [l for c in children for l in c.get_leaves()]
 
 
 
@@ -174,6 +184,10 @@ class Node(object):
         # gather all potential nodes
         nodes = subset if subset!=None else self.hg.nodes()
         # apply constraint and return
+        #for n in nodes:
+        #    print n
+        #    print constraint.satisfied_by(n)
+        #print "done evaluating"
         return {n for n in nodes if constraint.satisfied_by(n)}
 
 
@@ -217,7 +231,16 @@ class Node(object):
 
     def __str__(self):
         # should just...print all variables 'owned' by this object?
-        pass
+        # TODO: make this way, way better.
+        return self.name
+        #return pprint.pformat(vars(self))
+
+    def show_hg(self):
+        nx.draw(self.hg)
+        plt.show()
+    def show_cg(self):
+        nx.draw(self.cg)
+        plt.show()
 
     def print_children(self):
         """ Print all children in hierarchy graph... """
