@@ -61,6 +61,13 @@ class Node(object):
         for step in self.init_steps:
             step.execute(self)
 
+    def reinitialize(self):
+        """ Initialize self and tell children to reinitialize too. """
+        # TODO: seems like a strange name...
+        self.initialize()
+        for c in self.get_children():
+            c.reinitialize()
+
     def update(self):
         for step in self.update_steps:
             step.execute(self)
@@ -146,6 +153,20 @@ class Node(object):
     def get_inputs(self):
         # get list of output lists from sources
         return [p.output for p in self.get_sources()]
+
+    
+    #def connect_to(self, node):
+        # TODO
+        # If...have any connection rules?...then try to connect, and stop if 
+        # can't? But otherwise tell all children to try to connect_to node 
+        # instead.
+        # BUT HOW to ultimately make children connect to other's children?
+        # This will stay at the same "level" on one side at all times...
+        # should this call connect_from in the other group?
+        pass
+    #def connect_from(self, node):
+    #    pass
+    
 
     def filter_nodes(self, constraint, subset=None):
         """ Given a Constraint and subset, return a satisfying set of Nodes. """
