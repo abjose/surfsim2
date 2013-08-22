@@ -48,9 +48,9 @@ s = Context()
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
 # TODO: HOW TO HAVE RELATIVE 'parent' accesses? so could put these just in stimulus but check them from things that aren't children of stimulus?
 s.add_rule('init',
-           "$bcm_radius=10",
-           "$kernel_length=30",
-           "$stim_size=50")
+           "$bcm_radius = 10",
+           "$kernel_length = 30",
+           "$stim_size = 50")
 
 # add a container for stimulus and 'focus' on it
 s.add_node('$name = "stimulus"')
@@ -166,3 +166,32 @@ s.add_rule('update',
 
 # make connections to sum of GCM...but skip for now
 # also make copies of BCMs
+
+# TODO: Need to init graph, actually connect things, and step simulation.
+# hmm, isn't graph already basically initialized? Should still have some
+# kind of "reinitialize" thing...
+
+# Re-initialize entire circuit
+s.reinitialize()
+
+# make connections between necessary populations
+# set focus to root because I don't remember where I am
+s.set_focus('root')
+
+# can do connetion from here? again, would be nice to allow
+# "relative connection" to constrain things - 
+# for example could do
+#s.connect(["$name == root.stim"], 
+#          ["$name == root.gcm.bcm"])
+
+# but I guess now will be something like
+#s.connect(['$name == "stim"'], 
+#          ['$name == "bcm"'])
+# which seems ok...
+
+
+# connect stim_points to biphasics
+
+# connect biphasics to sums
+
+# connect sums to 
