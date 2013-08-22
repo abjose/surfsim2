@@ -1,6 +1,6 @@
 
 from node import Node
-from rule import Constraint, ExecStep
+from rule import Constraint as C, ExecStep as E
 
 class Context(object):
     """ A class for easing manipulations of node assemblies. """
@@ -20,6 +20,9 @@ class Context(object):
           constraint with...like parses on '.' and makes sure each 'parent' is
           correct.
     TODO: Sure self.selection is necessary?
+    TODO: Think you should get rid of self.selection. Seems like you can do
+          basically the same thing by creating constraints, and less to
+          think about that way.
     TODO: For the functions that are assumed to take self.focus, could add
           *args for optionally specifying constraints
     """
@@ -32,7 +35,11 @@ class Context(object):
         self.focus = self.root
         # for copy, pasting? want this? make 'focus' a list instead?
         self.selection = set()
-        
+    
+    def reinitialize(self):
+        """ Reinitialize entire graph, starting from root. """
+        self.root.reinitialize()
+    
     def set_focus(self, *args):
         """ Pass constraints, 'parent', or 'root', and will set focus. """
         # TODO: better way to handle if there are multiple args?
@@ -45,8 +52,7 @@ class Context(object):
         elif short and r[0] == 'root':
             self.focus = self.root
         else:
-            f = self.focus.filter_nodes(Constraint(r), 
-                                        subset=self.focus.get_children())
+            f = self.focus.filter_nodes(C(r), subset=self.focus.get_children())
             if len(f) == 1:
                 self.focus = f.pop()
             # should consider having both of these simply print warning
@@ -78,11 +84,11 @@ class Context(object):
         """ Add rule to node currently in focus. """
         r = list(args)
         if   dest == 'incoming':
-            self.focus.in_rules.append(Constraint(r))
+            self.focus.in_rules.append(C(r))
         elif dest == 'outgoing':
-            self.focus.out_rules.append(Constraint(r))
+            self.focus.out_rules.append(C(r))
         elif dest == 'init':
-            self.focus.init_steps.append(ExecStep(r))
+            self.focus.init_steps.append(E(r))
             self.focus.initialize()
             # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
             # TODO: perhaps could move this somewhere else - such that rather
@@ -90,12 +96,30 @@ class Context(object):
             #       something has been added to init_list and re-init if so
             #       (maybe even just re-init addition)
         elif dest == 'update':
-            self.focus.update_steps.append(ExecStep(r))
+            self.focus.update_steps.append(E(r))
         else:
             # just print warning?
             raise Exception("Didn't understand rule destination.")
 
-    def connect_to(self, target_constraints):
+
+    #def connect(self, source_constraints, target_constraints):
+    #    potential_sources = self.root.filter_nodes(target_constraints)
+    #    if len(potential_targets) > 1:
+    #        raise Exception('Constraints too vague in connect_to.')
+    #    target = potential_targets.pop()
+    #    # TODO: is it a problem that connect_to uses self.focus?
+
+    def connect(self, source_constraints, target_constraints):
+        """ Try to connect all nodes adhering to given lists of constraints. """
+        sources = self.root.filter_nodes(C(source_constraints))
+        targets = self.root.filter_nodes(C(target_constraints))
+        for s in sources:
+            for t in targets:
+                self.connect_nodes(s, t)
+
+    def connect_nodes(self, source, target):
+        """ Connect two nodes (if they want to). """
+
         # NOTE: probably not taking full advantage of things - ignores any
         # connection rules that aren't in leaves. Could possibly automate
         # graph structure in these connection rules? Could only choose to 'pass
@@ -106,13 +130,12 @@ class Context(object):
         #       to be directly connected to each other without either one
         #       explicitly wanting to? (but only if the leaves are what's being 
         #       connected and not their parents)
-        # figure out target - use global search
-        potential_targets = self.focus.filter_nodes(target_constraints)
-        if len(potential_targets) > 1:
-            raise Exception('Constraints too vague in connect_to.')
-        target = potential_targets.pop()
+        # NOTE: Everything here uses global search...
+        # TODO: Should totally allow "group connections" (i.e not force 
+        #       constraints to uniquely id a node.
+
         # get leaves of source and target
-        source_leaves = self.focus.get_leaves()
+        source_leaves = source.get_leaves()
         target_leaves = target.get_leaves()
         # connect anyone that wants to be connected
         for s in source_leaves:
@@ -120,8 +143,8 @@ class Context(object):
                 # note that in each instance you pass an 'other'
                 s_c = any([rule.satisfied_by(t, s) for rule in s.out_rules])
                 t_c = any([rule.satisfied_by(s, t) for rule in t.in_rules])
-                # Instead of disjunction, could do conjunction unless either
-                # has no rules specified, in which case disjunction? So 
+                # TODO: Instead of disjunction, could do conjunction unless
+                # either has no rules specified, in which case disjunction? So 
                 # basically just connect if all existing rules are satisfied...
                 if s_c or t_c:
                     s.cg.add_edge(s,t)
