@@ -35,6 +35,9 @@ class Context(object):
     TODO: Would things be easier if even stored rules just as strings, and only
           'evaluate' when you actually needed them? Then probably wouldn't need
           objects for these things at all.
+    TODO: consider having all rules added in a single call to add_rule be ANDed
+          together in a single constraint, and then every separate call to 
+          add_rule is ORed.
     """
 
 
@@ -162,7 +165,7 @@ class Context(object):
                 print s.name
                 print t.name
                 if s_c or t_c:
-                    # TODO: make print node attributes once...do that
+                    # TODO: make this print node attributes?
                     print 'connection made!'
                     s.cg.add_edge(s,t)
 
