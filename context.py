@@ -6,8 +6,6 @@ class Context(object):
     """ A class for easing manipulations of node assemblies. """
     
     """ NOTES
-    NOTE: Probably don't need copy and paste... just 'copy' to copy selection
-          into graph?
     NOTE: Potentially Contexts could have init_lists too? And this is what would
           allow you to connect things/construct circuits from a saved string?
           Seems slightly inelegant...also might be harder to 'insert' something
@@ -19,10 +17,6 @@ class Context(object):
           To do this could probably add some function to make the ncessary 
           constraint with...like parses on '.' and makes sure each 'parent' is
           correct.
-    TODO: Sure self.selection is necessary?
-    TODO: Think you should get rid of self.selection. Seems like you can do
-          basically the same thing by creating constraints, and less to
-          think about that way.
     TODO: For the functions that are assumed to take self.focus, could add
           *args for optionally specifying constraints
     TODO: Might be useful to allow something like "get_constraints" and could
@@ -42,12 +36,11 @@ class Context(object):
 
 
     def __init__(self):
+        # NOTE: (selection has been removed removed)
         # root node of everything. Need to store reference?
         self.root  = Node(None, '$name = "root"')
-        # the node currently being manipulated
+        # the node currently being manipulated -- could make this a list?
         self.focus = self.root
-        # for copy, pasting? want this? make 'focus' a list instead?
-        self.selection = set()
         # for keeping track of batch to assign to, and existing batch names
         self.batches = ['init', 'interact', 'update'] # ordered!!
         #self.curr_batch = 'init'
@@ -65,7 +58,6 @@ class Context(object):
     def set_focus(self, *args):
         """ Pass constraints, 'parent', or 'root', and will set focus. """
         # TODO: better way to handle if there are multiple args?
-        # TODO: should clear selection when changing focus?
         # TODO: just have little thing to print what current focus is...
         r = list(args)
         short = len(r) == 1
@@ -82,11 +74,6 @@ class Context(object):
                 raise Exception("Too many nodes satisfy that constraint!")
             else:
                 raise Exception("No nodes satisfy that constraint!")
-
-    #def select(self, constraints):
-    #    # ...select things within current focus........maybe
-    #    subset = self.focus.get_children()
-    #    self.selection = self.focus.filter_nodes(constraints, subset)
 
     def add_node(self, *args):
         """ Make a new node, extra args will be made into initial steps. """
@@ -109,7 +96,6 @@ class Context(object):
             self.focus.in_rules.append(C(r))
         elif dest == 'outgoing':
             self.focus.out_rules.append(C(r))
-
         elif dest in self.batches:
             self.focus.batch_steps[dest].append(E(r))
             if dest == 'init':
