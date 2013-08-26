@@ -57,7 +57,8 @@ class Context(object):
         self.root.reinitialize()
 
     def update(self):
-        self.root.update_with_children(...) # bad name?
+        #self.root.update_with_children(...) # bad name?
+        pass
     
     def set_focus(self, *args):
         """ Pass constraints, 'parent', or 'root', and will set focus. """
@@ -107,7 +108,7 @@ class Context(object):
         elif dest == 'outgoing':
             self.focus.out_rules.append(C(r))
 
-        elif dest in batches:
+        elif dest in self.batches:
             self.focus.batch_steps[dest].append(E(r))
             if dest == 'init':
                 # TODO: SURE YOU WANT THIS? could just exec addition instead

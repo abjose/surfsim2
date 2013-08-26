@@ -61,9 +61,6 @@ class Node(object):
         # run initial steps in case any were included
         self.initialize()
 
-        
-        
-
     def __getattr__(self, var):
         # If attribute not found, try getting from parent
         parent = self.get_parent()
@@ -74,11 +71,7 @@ class Node(object):
     def initialize(self):
         """ Initialize self. """
         print 'INITIALIZING:'
-        for step in self.batch_steps['init']
-            #step.execute(self)
-            print '\t', step
-            step.init_cmd()
-            exec(step.cmd) # uggggly
+        self.run_batch('init', debug=True)
 
     def reinitialize(self):
         """ Initialize self and tell children to reinitialize too. """
@@ -86,11 +79,6 @@ class Node(object):
         self.initialize()
         for c in self.get_children():
             c.reinitialize()
-
-    def update(self):
-        # WHAT TO DO ABOUT possibly updating before another thing reads?
-        for step in self.batch_steps['update']:
-            step.execute(self)
 
     def add_node(self, node): 
         # keep only in Context?
@@ -205,25 +193,21 @@ class Node(object):
         return {n for n in nodes if constraint.satisfied_by(n)}
 
 
+
     """ STEP AND BATCH FUNCTIONS """
 
-    def set_batch(self, ...):
-        pass
+    # def add_batch(...)
 
-    # to add batches, I guess should have "add_batch(number, steps)
-    # or something?
-    # maybe add_batch, set_batch
-    # or add_task is kept as normal, but keep track of batch and have
-    # set_batch as well?
-    # then have update_batch as well? (which runs update steps for
-    # all batches of the right number)
-    
-    # OR, could keep track of all of this in Context - just have context
-    # keep track of batches (but have Nodes be able to 'handle' them)
-    # i.e. all 'inits' add to proper batch
+    #def set_batch(self, ...):
 
-    # also, should have batches for both init_steps and update_steps...
-    # seems like it would be easier, and potentially convenient
+    def run_batch(self, batch, debug=False):
+        for step in self.batch_steps[batch]:
+            #step.execute(self)
+            if debug: print '\t', step
+            step.init_cmd()
+            exec(step.cmd) # uggggly
+
+
 
     """ INPUT/OUTPUT FUNCTIONS """
 
@@ -255,8 +239,8 @@ class Node(object):
         # NOTE: This should potentially be put into Utils.
         self.output = np.array([default]*self.kernel_length)
 
-    def reset(self, order='pic'):
-        pass
+    #def reset(self, order='pic'):
+    #    pass
 
 
 
