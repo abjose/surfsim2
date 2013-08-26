@@ -48,10 +48,16 @@ class Context(object):
         self.focus = self.root
         # for copy, pasting? want this? make 'focus' a list instead?
         self.selection = set()
+        # for keeping track of batch to assign to, and existing batch names
+        self.batches = set(['init', 'interact', 'update'])
+        #self.curr_batch = 'init'
     
     def reinitialize(self):
         """ Reinitialize entire graph, starting from root. """
         self.root.reinitialize()
+
+    def update(self):
+        self.root.update_with_children(...) # bad name?
     
     def set_focus(self, *args):
         """ Pass constraints, 'parent', or 'root', and will set focus. """
@@ -100,27 +106,37 @@ class Context(object):
             self.focus.in_rules.append(C(r))
         elif dest == 'outgoing':
             self.focus.out_rules.append(C(r))
-        elif dest == 'init':
-            self.focus.init_steps.append(E(r))
-            self.focus.initialize()
-            # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
-            # TODO: perhaps could move this somewhere else - such that rather
-            #       than init'ing everywhere, just check in one place if 
-            #       something has been added to init_list and re-init if so
-            #       (maybe even just re-init addition)
-        elif dest == 'update':
-            self.focus.update_steps.append(E(r))
+
+        elif dest in batches:
+            self.focus.batch_steps[dest].append(E(r))
+            if dest == 'init':
+                # TODO: SURE YOU WANT THIS? could just exec addition instead
+                # TODO: perhaps move this somewhere else - such that rather
+                #       than init'ing everywhere, just check in one place if 
+                #       something has been added to init_list and re-init if so
+                #       (maybe even just re-init addition)
+                self.focus.initialize()
+                
+        #elif dest == 'init':
+        #    self.focus.init_steps.append(E(r))
+        #    self.focus.initialize()
+        #    # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
+        #    # TODO: perhaps could move this somewhere else - such that rather
+        #    #       than init'ing everywhere, just check in one place if 
+        #    #       something has been added to init_list and re-init if so
+        #    #       (maybe even just re-init addition)
+        #elif dest == 'update':
+        #    self.focus.update_steps.append(E(r))
         else:
             # just print warning?
             raise Exception("Didn't understand rule destination.")
 
 
-    #def connect(self, source_constraints, target_constraints):
-    #    potential_sources = self.root.filter_nodes(target_constraints)
-    #    if len(potential_targets) > 1:
-    #        raise Exception('Constraints too vague in connect_to.')
-    #    target = potential_targets.pop()
-    #    # TODO: is it a problem that connect_to uses self.focus?
+    #def set_batch(self, batch):
+    #    """ Set Context's batch to control which batch steps are added to. 
+    #        Batch can be a name or number. """
+    #    self.batches.add(batch)
+    #    self.curr_batch = batch
 
     def connect(self, source_constraints, target_constraints):
         """ Try to connect all nodes adhering to given lists of constraints. """

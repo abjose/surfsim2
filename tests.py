@@ -40,6 +40,7 @@ TODO: Would be nice to add something that catches exceptions when ExecSteps
       or Constraints don't work and tells you what the string is. Also could
       have warnings when variables are made without being prepended by $ or 
       other?
+TODO: Why is nothing shown for initialization during copies?
 """
 
 # create context
@@ -128,7 +129,7 @@ s.add_rule('update',
 s.add_rule('incoming',
            "other.name == 'stim_point'",
            "dist((other.x, other.y), ($x, $y)) < 10",
-           "len($get_predecessors()) < 1") # ugly-ish
+           "len($get_predecessors()) < 10") # ugly-ish
 
 # want to make connection to BCM's sum node
 s.add_rule('outgoing',
@@ -177,10 +178,8 @@ s.reinitialize()
 # make connections between necessary populations
 
 # connect stim_points to biphasics
-s.connect(['$name == "stim_point"'], 
-          ['$name == "biphasic"']) 
-# alternately could connect stim and bcm? or any combination...
-# TODO: see if ^ works the same
+s.connect(['$name == "stimulus"'], 
+          ['$name == "BCM"']) 
 
 # connect biphasics to sums
 s.connect(['$name == "biphasic"'], 
@@ -190,3 +189,4 @@ s.connect(['$name == "biphasic"'],
 s.connect(['$name == "sum"'], 
           ['$name == "thresh"'])
 
+s.focus.show_cg()

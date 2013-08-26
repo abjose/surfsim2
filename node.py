@@ -31,6 +31,13 @@ class Node(object):
           (maybe even just re-init addition)
     TODO: What to do about stepping? Possible that something updates its output
           before another thing reads it for that step...
+    TODO: Add batches? Hmm, if adding batches, can perhaps get rid of 
+          init_steps and update_steps distinction? So just have a batch called
+          'init' always be run initially, batches called 'interact' and
+          'update' that are run in order...
+          Could then add those as default lists
+          And...this makes 'destinations' actually 'batches'?
+    TODO: Add 'batch steps' argument? eh...
     """
 
     def __init__(self, parent, *args):
@@ -43,14 +50,18 @@ class Node(object):
         self.cg.add_node(self)
         if parent != None:
             self.hg.add_edge(parent, self)        
-        # procedures for init and update - lists of ExecSteps
-        self.init_steps   = [ExecStep(list(args))] if args else [] # run on init
-        self.update_steps = [] # run every iteration
+        # procedures for various batches - lists of ExecSteps
+        self.batch_steps = dict(init=[], interact=[], update=[]) # better name?
+        self.batch_steps['init'] = [ExecStep(list(args))] if args else [] 
+        #self.init_steps   = [ExecStep(list(args))] if args else []  run on init
+        #self.update_steps = [] # run every iteration
         # rules for incoming and outgoing connections - lists of Constraints
         self.in_rules  = []
         self.out_rules = []
         # run init_steps in case any were included
         self.initialize()
+
+        
         
 
     def __getattr__(self, var):
@@ -61,8 +72,9 @@ class Node(object):
         return None
 
     def initialize(self):
+        """ Initialize self. """
         print 'INITIALIZING:'
-        for step in self.init_steps:
+        for step in self.batch_steps['init']
             #step.execute(self)
             print '\t', step
             step.init_cmd()
@@ -76,7 +88,8 @@ class Node(object):
             c.reinitialize()
 
     def update(self):
-        for step in self.update_steps:
+        # WHAT TO DO ABOUT possibly updating before another thing reads?
+        for step in self.batch_steps['update']:
             step.execute(self)
 
     def add_node(self, node): 
@@ -190,6 +203,43 @@ class Node(object):
         #print "done evaluating"
         return {n for n in nodes if constraint.satisfied_by(n)}
 
+
+    """ STEP AND BATCH FUNCTIONS """
+
+    def set_batch(self, ...):
+        pass
+
+    # to add batches, I guess should have "add_batch(number, steps)
+    # or something?
+    # maybe add_batch, set_batch
+    # or add_task is kept as normal, but keep track of batch and have
+    # set_batch as well?
+    # then have update_batch as well? (which runs update steps for
+    # all batches of the right number)
+    
+    # OR, could keep track of all of this in Context - just have context
+    # keep track of batches (but have Nodes be able to 'handle' them)
+    # i.e. all 'inits' add to proper batch
+
+    # also, should have batches for both init_steps and update_steps...
+    # seems like it would be easier, and potentially convenient
+
+    def add_step(self, step, dest, batch):
+        # should take ExecStep or *args?
+        # should step things be dicts instead of lists? might be easier that way
+        if dest == 'init':
+            self.focus.init_steps.append(E(r))
+            self.focus.initialize()
+            # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
+            # TODO: perhaps could move this somewhere else - such that rather
+            #       than init'ing everywhere, just check in one place if 
+            #       something has been added to init_list and re-init if so
+            #       (maybe even just re-init addition)
+        elif dest == 'update':
+            self.update_steps.append(E(r))
+        else:
+            # just print warning?
+            raise Exception("Didn't understand rule destination.")
 
 
     """ INPUT/OUTPUT FUNCTIONS """
