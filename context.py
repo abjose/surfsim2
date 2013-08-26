@@ -52,13 +52,15 @@ class Context(object):
         self.batches = ['init', 'interact', 'update'] # ordered!!
         #self.curr_batch = 'init'
     
-    def reinitialize(self):
+    def init_simulation(self):
         """ Reinitialize entire graph, starting from root. """
         self.root.reinitialize()
 
-    def update(self):
-        #self.root.update_with_children(...) # bad name?
-        pass
+    def step_simulation(self):
+        """ Run each batch in order. """
+        for batch in self.batches:
+            for c in self.focus.cg.nodes():
+                c.run_batch(batch)
     
     def set_focus(self, *args):
         """ Pass constraints, 'parent', or 'root', and will set focus. """
