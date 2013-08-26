@@ -58,7 +58,7 @@ class Node(object):
         # rules for incoming and outgoing connections - lists of Constraints
         self.in_rules  = []
         self.out_rules = []
-        # run init_steps in case any were included
+        # run initial steps in case any were included
         self.initialize()
 
         
@@ -110,8 +110,9 @@ class Node(object):
             n = Node(parent)
         
             # append all of own rules to copy
-            n.init_steps   += self.init_steps
-            n.update_steps += self.update_steps
+            n.batch_steps['init']     += self.batch_steps['init']
+            n.batch_steps['interact'] += self.batch_steps['interact']
+            n.batch_steps['update']   += self.batch_steps['update']
             n.in_rules  += self.in_rules
             n.out_rules += self.out_rules
 
@@ -223,24 +224,6 @@ class Node(object):
 
     # also, should have batches for both init_steps and update_steps...
     # seems like it would be easier, and potentially convenient
-
-    def add_step(self, step, dest, batch):
-        # should take ExecStep or *args?
-        # should step things be dicts instead of lists? might be easier that way
-        if dest == 'init':
-            self.focus.init_steps.append(E(r))
-            self.focus.initialize()
-            # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
-            # TODO: perhaps could move this somewhere else - such that rather
-            #       than init'ing everywhere, just check in one place if 
-            #       something has been added to init_list and re-init if so
-            #       (maybe even just re-init addition)
-        elif dest == 'update':
-            self.update_steps.append(E(r))
-        else:
-            # just print warning?
-            raise Exception("Didn't understand rule destination.")
-
 
     """ INPUT/OUTPUT FUNCTIONS """
 

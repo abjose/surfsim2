@@ -49,7 +49,7 @@ class Context(object):
         # for copy, pasting? want this? make 'focus' a list instead?
         self.selection = set()
         # for keeping track of batch to assign to, and existing batch names
-        self.batches = set(['init', 'interact', 'update'])
+        self.batches = ['init', 'interact', 'update'] # ordered!!
         #self.curr_batch = 'init'
     
     def reinitialize(self):
@@ -86,7 +86,7 @@ class Context(object):
     #    self.selection = self.focus.filter_nodes(constraints, subset)
 
     def add_node(self, *args):
-        """ Make a new node, extra args will be made into init_steps """
+        """ Make a new node, extra args will be made into initial steps. """
         Node(self.focus, *args) # auto-insertion seems sorta strange, honestly
         # TODO: you should make sure this actually works...
 
@@ -128,7 +128,6 @@ class Context(object):
         #elif dest == 'update':
         #    self.focus.update_steps.append(E(r))
         else:
-            # just print warning?
             raise Exception("Didn't understand rule destination.")
 
 
