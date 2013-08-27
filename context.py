@@ -23,6 +23,7 @@ class Context(object):
           attempt to connect something and would return a set of appropariate 
           constraints...so users could just connect things in GUI and then
           would properly add constraints so things could be copied...
+          I think this ^ would be the same as connect(root, root)
     TODO: Also have "global connect" thing where everything is told to connect
           with everything? and presumably only 'correct' connections happen.
     TODO: Add a context version of filter_nodes that takes *args?
@@ -32,6 +33,9 @@ class Context(object):
     TODO: consider having all rules added in a single call to add_rule be ANDed
           together in a single constraint, and then every separate call to 
           add_rule is ORed.
+    TODO: Having list of batches seems inelegant (also inelegant for 
+          initializing in node. Take advantage of dict-ness to never keep track
+          of existing batches? (...or batch order...?)
     """
 
 

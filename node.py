@@ -25,18 +25,6 @@ class Node(object):
           each time a new init_step is added??
     TODO: Put various things that should be put in Utils...into utils.
     TODO: Rather than having *args for __init__, could have **kwargs?
-    TODO: perhaps could move this somewhere else - such that rather
-          than init'ing everywhere, just check in one place if 
-          something has been added to init_list and re-init if so
-          (maybe even just re-init addition)
-    TODO: What to do about stepping? Possible that something updates its output
-          before another thing reads it for that step...
-    TODO: Add batches? Hmm, if adding batches, can perhaps get rid of 
-          init_steps and update_steps distinction? So just have a batch called
-          'init' always be run initially, batches called 'interact' and
-          'update' that are run in order...
-          Could then add those as default lists
-          And...this makes 'destinations' actually 'batches'?
     TODO: Add 'batch steps' argument? eh...
     """
 
@@ -214,6 +202,8 @@ class Node(object):
     def convolve_input(self, ):
         # assumes there are incoming connections and self.irf exists
         # sorta strange to have, but justified because so common?
+        # should perhaps make into set of strings instead, and put
+        # into 'utils' or wherever sets of do-things strings are put?
         input_nodes = self.get_sources()
         if input_nodes == []:
             raise Exception('No incoming connections to convolve!')
