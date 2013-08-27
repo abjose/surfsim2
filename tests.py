@@ -34,6 +34,7 @@ s.add_rule('init',
            "$bcm_radius = 10",
            "$kernel_length = 30",
            "$stim_size = 50")
+# NOTE: these are one longer than you think?
 
 # add a container for stimulus and 'focus' on it
 s.add_node('$name = "stimulus"')
@@ -63,9 +64,9 @@ s.add_rule('init',
 s.add_rule('interact',
            '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
-           'print "TEMP_DATA: ", $temp_data',
+           #'print "TEMP_DATA: ", $temp_data',
            '$output = np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
-           'print $output',
+           #'print $output',
            '$clean_output()')
 
 # make some stim_point copies...should technically make lots more than 10...
@@ -109,6 +110,7 @@ s.add_rule('init',
 s.add_rule('interact',
            '$temp_data = $convolve_input()')
 s.add_rule('update',
+           #'print $temp_data',
            '$output = $temp_data',
            '$clean_output()') 
 
@@ -133,9 +135,11 @@ s.add_rule('init', '$init_output()')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
+           #'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output = np.append($output, $temp_data)',  # TODO: VERY INEFFICIENT
+           '$output = $temp_data',  # TODO: VERY INEFFICIENT
+           #'print $output',
            '$clean_output()')
 
 # want to make connections to thresh
@@ -153,8 +157,9 @@ s.add_rule('init', '$init_output()')
 # threshold input vector
 s.add_rule('interact',
            # TODO: This is an ugly way of doing this
-           '$temp_data = threshold(verify_single($get_inputs())[0], 0)')
+           '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
 s.add_rule('update',
+           'print $temp_data',
            '$output = $temp_data', 
            '$clean_output()')
 
@@ -184,8 +189,8 @@ s.connect(['$name == "sum"'],
 
 # TODO: write data to text files (in a folder.....) and VISUALIZE
 #       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
+# TODO: After have some visualization working, make biphasic kernel real.
 
-
-for i in range(15):
+for i in range(20):
     print '\n\nstep ', i
     s.step_simulation()
