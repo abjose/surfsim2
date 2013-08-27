@@ -153,7 +153,11 @@ class Node(object):
     def get_inputs(self):
         # get list of output lists from sources
         # TODO: sometimes this recurses all the way back to root...avoid?
-        return [p.output for p in self.get_sources() if p.output != None]
+        # TODO: make default better...
+        # TODO: Is this behavior what you want?!?!?!?
+        default = [np.array([0.]*self.kernel_length)]
+        inputs  = [p.output for p in self.get_sources() if p.output != None]
+        return inputs if inputs != [] else default
     
     #def connect_to(self, node):
         # TODO
@@ -184,7 +188,7 @@ class Node(object):
 
     """ STEP AND BATCH FUNCTIONS """
 
-    # def add_batch(...)
+    #def add_batch(...):
 
     #def set_batch(...):
 
