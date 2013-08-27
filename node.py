@@ -189,10 +189,10 @@ class Node(object):
     #def set_batch(...):
 
     def run_batch(self, batch, debug=False):
-        print '\n\n'
-        print batch
-        print self.batch_steps[batch]
-        print self
+        #print '\n\n'
+        #print batch
+        #print self.batch_steps[batch]
+        #print self
         for step in self.batch_steps[batch]:
             #step.execute(self)
             if debug: print '\t', step
