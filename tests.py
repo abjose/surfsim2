@@ -4,22 +4,6 @@
 #from node import Node
 from context import Context
 
-"""
-i1 = E(["$name = 'test1'",
-        "$value = 5",
-        "$woop = True",
-        "$position = (1,1)"])
-i2 = E(["$name = 'test2'",
-        "$value = 10",
-        "$woop = False"])
-
-c1 = C(["$name  = 'test1'",
-        "$value = 6",])
-c2 = C(["$value > 5"])
-c3 = C(["$name ='test1' or $name='test2'",
-        "$value = 5",])
-"""
-
 """ NOTES    
 TODO: put useful Es and Cs into a file somewhere
       maybe make them into functions so you can modify their insides :O
@@ -35,10 +19,9 @@ TODO: Come up with 'rules' on how to use things. For example, seeming like
       referencing them...and don't connect things before initializing...
 TODO: If going to have many things that take a (list of) input vectors but need
       to operate on only a single output vector...better way of doing?
-TODO: Need to add some kind of "step_network" function
 TODO: Would be nice to add something that catches exceptions when ExecSteps
-      or Constraints don't work and tells you what the string is. Also could
-      have warnings when variables are made without being prepended by $ or 
+      or Constraints don't work and tells you what the string is. 
+TODO: Have warnings when variables are made without being prepended by $ or 
       other?
 TODO: Why is nothing shown for initialization during copies?
 """
@@ -47,7 +30,6 @@ TODO: Why is nothing shown for initialization during copies?
 s = Context()
 
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
-# TODO: HOW TO HAVE RELATIVE 'parent' accesses? so could put these just in stimulus but check them from things that aren't children of stimulus?
 s.add_rule('init',
            "$bcm_radius = 10",
            "$kernel_length = 30",
@@ -77,8 +59,10 @@ s.set_focus('$name == "stim_point"')
 s.add_rule('init', 
            '$x, $y = $child_grid.get_next()',
            '$init_output()')
+s.add_rule('interact',
+           '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
-           '$output.append($sin_matrix[$x][$y])', # ????
+           '$output.append($temp_data)',
            '$clean_output()')
 
 # make some stim_point copies...should technically make lots more than 10...
@@ -119,9 +103,11 @@ s.add_rule('init',
            '1/dist(($parent().x, $parent().y), ($x, $y)))') # ??? TODO
 
 # use irf to update output vector
+s.add_rule('interact',
+           '$temp_data = $convolve_input()')
 s.add_rule('update',
-           '$output.append($convolve_input())',
-           '$clean_output()') # ??? 
+           '$output = $temp_data',
+           '$clean_output()') 
 
 # Get connections from nearest input node
 # could put something in parent to help?
@@ -142,9 +128,11 @@ s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_output()')
 
-# On ever step, sum inputs, push sum to end of output vector
+# On every step, sum inputs, push sum to end of output vector
+s.add_rule('interact',
+           '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output.append(sum($get_inputs()))',
+           '$output.append($temp_data)',
            '$clean_output()')
 
 # want to make connections to thresh
@@ -165,15 +153,20 @@ s.add_rule('update',
            '$output = thresh(verify_single($get_inputs())[0])', 
            '$clean_output()')
 
-# make connections to sum of GCM...but skip for now
-# also make copies of BCMs
+# TODO: FIX!!!!!
+s.add_rule('interact',
+           '$temp_data = $convolve_input()')
+s.add_rule('update',
+           '$output = $temp_data',
+           '$clean_output()')
 
-# TODO: Need to init graph, actually connect things, and step simulation.
-# hmm, isn't graph already basically initialized? Should still have some
-# kind of "reinitialize" thing...
+
+# TODO: make copies of BCMs
+# TODO: make connections to sum of GCM...but skip for now
+
 
 # Re-initialize entire circuit
-s.reinitialize()
+s.init_simulation()
 
 # make connections between necessary populations
 
@@ -190,3 +183,19 @@ s.connect(['$name == "sum"'],
           ['$name == "thresh"'])
 
 s.focus.show_cg()
+
+# Need to add more steps so update properly
+# so deciding things should go like interact -> update?
+# and should get data from other places on interact step
+# update own outputs (and whatever else) on update step
+# something like
+s.add_rule('interact',
+           '$temp_data = $convolve_input()')
+s.add_rule('update',
+           '$output = $temp_data',
+           '$clean_output()')
+
+#s.step_simulation()
+
+# TODO: write data to text files (in a folder.....) and VISUALIZE
+#       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
