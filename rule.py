@@ -62,8 +62,8 @@ class ExecStep(object):
 
     # TODO: this would be a good candidate for using kwargs instead of strings?
 
-    #def __repr__(self):
-    #    return str(self.i)
+    def __repr__(self):
+        return str(self.i)
 
     def init_cmd(self):
         I = '\n'.join(self.i)

@@ -46,7 +46,10 @@ class Context(object):
         # the node currently being manipulated -- could make this a list?
         self.focus = self.root
         # for keeping track of batch to assign to, and existing batch names
-        self.batches = ['init', 'interact', 'update'] # ordered!!
+        #self.batches = ['init', 'interact', 'update'] # ordered!!
+        self.init_batches = ['init']
+        self.step_batches = ['interact', 'update']
+        self.batches = self.init_batches + self.step_batches # TODO: ehhhhhh
         #self.curr_batch = 'init'
     
     def init_simulation(self):
@@ -55,7 +58,7 @@ class Context(object):
 
     def step_simulation(self):
         """ Run each batch in order. """
-        for batch in self.batches:
+        for batch in self.step_batches:
             for c in self.focus.cg.nodes():
                 c.run_batch(batch)
     

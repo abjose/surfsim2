@@ -63,7 +63,9 @@ s.add_rule('init',
 s.add_rule('interact',
            '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
-           'np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
+           'print "TEMP_DATA: ", $temp_data',
+           '$output = np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
+           'print $output',
            '$clean_output()')
 
 # make some stim_point copies...should technically make lots more than 10...
@@ -131,10 +133,9 @@ s.add_rule('init', '$init_output()')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
-           'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           'np.append($output, $temp_data)',  # TODO: VERY INEFFICIENT
+           '$output = np.append($output, $temp_data)',  # TODO: VERY INEFFICIENT
            '$clean_output()')
 
 # want to make connections to thresh
@@ -184,4 +185,7 @@ s.connect(['$name == "sum"'],
 # TODO: write data to text files (in a folder.....) and VISUALIZE
 #       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
 
-s.step_simulation()
+
+for i in range(15):
+    print '\n\nstep ', i
+    s.step_simulation()

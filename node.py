@@ -215,8 +215,8 @@ class Node(object):
         # or just do 'same' for now?
         # could 'blend' the filtered and unfiltered vectors...
         input_nodes = self.get_sources()
-        print 'input node output: ', input_nodes[0].output
-        print 'irf: ', self.irf
+        #print 'input node output: ', input_nodes[0].output
+        #print 'irf: ', self.irf
         if input_nodes == []:
             raise Exception('No incoming connections to convolve!')
         elif len(input_nodes) > 1:
@@ -231,7 +231,10 @@ class Node(object):
         # NOTE: This should potentially be put into Utils.
         assert len(self.output) >= self.kernel_length
         # take newest slice
+        #print 'BEFORE: ', self.output
         self.output = np.array(self.output[-self.kernel_length:])
+        #print 'AFTER: ', self.output
+
 
     def init_output(self, default=0.):
         """ Given kernel_length, intialize a numpy a numpy array. """
