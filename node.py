@@ -152,8 +152,8 @@ class Node(object):
 
     def get_inputs(self):
         # get list of output lists from sources
-        return [p.output for p in self.get_sources()]
-
+        # TODO: sometimes this recurses all the way back to root...avoid?
+        return [p.output for p in self.get_sources() if p.output != None]
     
     #def connect_to(self, node):
         # TODO
@@ -186,9 +186,13 @@ class Node(object):
 
     # def add_batch(...)
 
-    #def set_batch(self, ...):
+    #def set_batch(...):
 
     def run_batch(self, batch, debug=False):
+        print '\n\n'
+        print batch
+        print self.batch_steps[batch]
+        print self
         for step in self.batch_steps[batch]:
             #step.execute(self)
             if debug: print '\t', step
@@ -204,17 +208,22 @@ class Node(object):
         # sorta strange to have, but justified because so common?
         # should perhaps make into set of strings instead, and put
         # into 'utils' or wherever sets of do-things strings are put?
+
+        # TODO: HMMMMM, this doesn't neccessarily return a full-sized array...
+        # what to do? could pad? 
+        # or could store extra input values equal to size of irf?
+        # or just do 'same' for now?
+        # could 'blend' the filtered and unfiltered vectors...
         input_nodes = self.get_sources()
+        print 'input node output: ', input_nodes[0].output
+        print 'irf: ', self.irf
         if input_nodes == []:
             raise Exception('No incoming connections to convolve!')
         elif len(input_nodes) > 1:
             raise Exception('Too many inputs to convolve!')
-        return np.signal.convolve(input_nodes[0].output, self.irf, mode='same')
-    # TODO: HMMMMM, this doesn't neccessarily return a full-sized array...
-    # what to do? could pad? 
-    # or could store extra input values equal to size of irf?
-    # or just do 'same' for now?
-    # could 'blend' the filtered and unfiltered vectors...
+        
+        return np.convolve(input_nodes[0].output, self.irf, mode='same')
+    
 
     def clean_output(self):
         # make sure output is a numpy array of the right length
@@ -239,8 +248,8 @@ class Node(object):
     def __str__(self):
         # should just...print all variables 'owned' by this object?
         # TODO: make this way, way better.
-        return self.name
-        #return pprint.pformat(vars(self))
+        #return self.name
+        return pprint.pformat(vars(self))
 
     def show_hg(self):
         nx.draw(self.hg)

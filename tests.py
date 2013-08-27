@@ -46,7 +46,8 @@ s.add_rule('init',
 # also maintain a matrix of sinusoid values for stimulus points to access
 s.add_rule('init',
            '$sin_input = SinusoidInput($stim_size, $stim_size)',
-           '$sin_matrix = None')
+           '$sin_input.step()', 
+           '$sin_matrix = $sin_input.output')
 s.add_rule('update',
            '$sin_input.step()', 
            '$sin_matrix = $sin_input.output')
@@ -62,7 +63,7 @@ s.add_rule('init',
 s.add_rule('interact',
            '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
-           '$output.append($temp_data)',
+           'np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
            '$clean_output()')
 
 # make some stim_point copies...should technically make lots more than 10...
@@ -115,7 +116,7 @@ s.add_rule('update',
 s.add_rule('incoming',
            "other.name == 'stim_point'",
            "dist((other.x, other.y), ($x, $y)) < 10",
-           "len($get_predecessors()) < 10") # ugly-ish
+           "len($get_predecessors()) < 1") # ugly-ish
 
 # want to make connection to BCM's sum node
 s.add_rule('outgoing',
@@ -130,9 +131,10 @@ s.add_rule('init', '$init_output()')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
+           'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output.append($temp_data)',
+           'np.append($output, $temp_data)',  # TODO: VERY INEFFICIENT
            '$clean_output()')
 
 # want to make connections to thresh
@@ -148,22 +150,15 @@ s.set_focus('$name == "thresh"')
 s.add_rule('init', '$init_output()')
 
 # threshold input vector
-s.add_rule('update',
-           # TODO: This is an ugly way of doing this
-           '$output = thresh(verify_single($get_inputs())[0])', 
-           '$clean_output()')
-
-# TODO: FIX!!!!!
 s.add_rule('interact',
-           '$temp_data = $convolve_input()')
+           # TODO: This is an ugly way of doing this
+           '$temp_data = threshold(verify_single($get_inputs())[0], 0)')
 s.add_rule('update',
-           '$output = $temp_data',
+           '$output = $temp_data', 
            '$clean_output()')
-
 
 # TODO: make copies of BCMs
 # TODO: make connections to sum of GCM...but skip for now
-
 
 # Re-initialize entire circuit
 s.init_simulation()
@@ -182,20 +177,11 @@ s.connect(['$name == "biphasic"'],
 s.connect(['$name == "sum"'], 
           ['$name == "thresh"'])
 
-s.focus.show_cg()
 
-# Need to add more steps so update properly
-# so deciding things should go like interact -> update?
-# and should get data from other places on interact step
-# update own outputs (and whatever else) on update step
-# something like
-s.add_rule('interact',
-           '$temp_data = $convolve_input()')
-s.add_rule('update',
-           '$output = $temp_data',
-           '$clean_output()')
+#s.focus.show_cg()
 
-#s.step_simulation()
 
 # TODO: write data to text files (in a folder.....) and VISUALIZE
 #       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
+
+s.step_simulation()
