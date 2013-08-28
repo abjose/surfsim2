@@ -24,7 +24,7 @@ def rand(a=0, b=1):
 
 def rand_centered(c, r):
     # return random float centered on c with radius r
-    return r*np.random.rand() + c
+    return 2*abs(r)*np.random.rand() - r + c
 
 def biphasic(size, A):
     # initalize a biphasic irf of size length and A amplitude
