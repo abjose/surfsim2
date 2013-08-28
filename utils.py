@@ -29,7 +29,8 @@ def rand_centered(c, r):
 def biphasic(size, A):
     # initalize a biphasic irf of size length and A amplitude
     # TODO: MAKE THIS ACTUALLY DO THING
-    return np.array([A]*size)
+    #return np.array([A]*size)
+    return np.array([1])
 
 def threshold(array, thresh):
     # threshold passed array...could have more parameters, like what to set 
