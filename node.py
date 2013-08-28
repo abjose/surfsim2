@@ -255,8 +255,8 @@ class Node(object):
     def __str__(self):
         # should just...print all variables 'owned' by this object?
         # TODO: make this way, way better.
-        #return self.name
-        return pprint.pformat(vars(self))
+        return self.name
+        #return pprint.pformat(vars(self))
 
     def show_hg(self):
         nx.draw(self.hg)
