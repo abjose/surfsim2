@@ -258,13 +258,9 @@ stim = s.focus
 
 s.set_focus('root')
 
-# TODO: After have some visualization working, make biphasic kernel real
-# TODO: make connections to sum of GCM
+# TODO: Make biphasic IRF 'real'
 # TODO: could also have a 2nd set of plots that just shows the output of 
 #       everything (so won't be so slow)
-
-# TODO: Visualize GCM stuff (maybe separately)
-# TODO: Make all BCMs feed into single GCM
 
 
 # step the network a few times to get started
@@ -280,10 +276,18 @@ biphasics = [list(s.focus.filter_nodes(C(['$name == "biphasic"',
 chosen_bcm = random.sample(bcms,1)[0]
 chosen_biphasics = list(s.focus.filter_nodes(C(['$name == "biphasic"',
                                                 'id($parent()) == ' + str(id(chosen_bcm))])))
-chosen_bcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
-                                              'id($parent()) == ' + str(id(chosen_bcm))])))[0]
-chosen_bcm_thresh = list(s.focus.filter_nodes(C(['$name == "thresh"',
-                                                 'id($parent()) == ' + str(id(chosen_bcm))])))[0]
+bcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
+                                       'id($parent()) == ' + 
+                                       str(id(chosen_bcm))])))[0]
+bcm_thresh = list(s.focus.filter_nodes(C(['$name == "thresh"',
+                                          'id($parent()) == ' + 
+                                          str(id(chosen_bcm))])))[0]
+
+gcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
+                                       '$parent().name == "GCM"'])))[0]
+gcm_thresh = list(s.focus.filter_nodes(C(['$name == "thresh"',
+                                          '$parent().name == "GCM"'])))[0]
+
 
 
 bcm_xs = [b.x for b in bcms]
@@ -301,7 +305,7 @@ for i in range(20):
     s.step_simulation()
     plt.cla()
     
-    plt.subplot2grid((7,6), (0,1), colspan=4, rowspan=4)
+    plt.subplot2grid((9,6), (0,1), colspan=4, rowspan=4)
     plt.xlim([0,19])
     plt.ylim([0,19])
     plt.imshow(stim.sin_matrix, cmap='Greys')
@@ -315,18 +319,25 @@ for i in range(20):
 
     for i in range(len(chosen_biphasics)):
         b = chosen_biphasics[i]
-        plt.subplot2grid((7,6), (4,i))
+        plt.subplot2grid((9,6), (4,i))
         plt.imshow(np.resize(b.output, (10, len(b.output))), 
                    cmap='Greys')
 
-    plt.subplot2grid((7,6), (5, 0))
-    plt.imshow(np.resize(chosen_bcm_sum.output, 
-                         (10, len(chosen_bcm_sum.output))), 
+    plt.subplot2grid((9,6), (5, 0))
+    plt.imshow(np.resize(bcm_sum.output, (10, len(bcm_sum.output))), 
                cmap='Greys')
 
-    plt.subplot2grid((7,6), (6, 0))
-    plt.imshow(np.resize(chosen_bcm_thresh.output, 
-                         (10, len(chosen_bcm_thresh.output))), 
+    plt.subplot2grid((9,6), (6, 0))
+    plt.imshow(np.resize(bcm_thresh.output,(10, len(bcm_thresh.output))),
+               cmap='Greys')
+
+
+    plt.subplot2grid((9,6), (7, 1))
+    plt.imshow(np.resize(gcm_sum.output, (10, len(gcm_sum.output))), 
+               cmap='Greys')
+
+    plt.subplot2grid((9,6), (8, 1))
+    plt.imshow(np.resize(gcm_thresh.output,(10, len(gcm_thresh.output))),
                cmap='Greys')
 
 
