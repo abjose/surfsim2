@@ -1,6 +1,7 @@
 
 
-#from rule import Constraint as C, ExecStep as E
+from rule import Constraint as C, ExecStep as E
+import random
 #from node import Node
 from context import Context
 import matplotlib.pyplot as plt
@@ -33,9 +34,9 @@ s = Context()
 
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
 s.add_rule('init',
-           "$bcm_radius = 10",
+           "$bcm_radius = 4",
            "$kernel_length = 30",
-           "$stim_size = 50")
+           "$stim_size = 20")
 # NOTE: these are one longer than you think?
 
 # add a container for stimulus and 'focus' on it
@@ -44,7 +45,8 @@ s.set_focus('$name == "stimulus"')
 
 # add a distribution rule for stimulus points
 s.add_rule('init',
-           '$child_grid = Grid(xl=$stim_size, yl=$stim_size)')
+           '$child_grid = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)',
+           'print $child_grid.positions')
 
 # also maintain a matrix of sinusoid values for stimulus points to access
 s.add_rule('init',
@@ -74,7 +76,7 @@ s.add_rule('update',
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
 # TODO: want to change copy_node so that it takes constraints? 
-s.copy_node(N=50)
+s.copy_node(N=99)
 
 # Add another node to root to act as the Ganglion Cell Module
 s.set_focus('parent')
@@ -84,7 +86,7 @@ s.set_focus('$name == "GCM"')
 
 # Add a grid-positioning rule for BCMs (grid same size as stimulus)
 s.add_rule('init',
-           '$child_grid = Grid(dx=10, dy=10, xl=$stim_size, yl=$stim_size)')
+           '$child_grid = Grid(x0=5, y0=5, dx=5, dy=5, xl=$stim_size, yl=$stim_size)')
            
 # Add a node to act as a Bipolar Cell Module
 s.add_node('$name = "BCM"')
@@ -129,6 +131,9 @@ s.add_rule('outgoing',
            'other.name == "sum"', 
            "$parent() == other.parent()") 
 
+# make some more biphasics
+s.copy_node(N=5)
+
 # set up sum
 s.set_focus('parent')
 s.add_node('$name = "sum"')
@@ -140,7 +145,7 @@ s.add_rule('interact',
            #'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output = $temp_data',  # TODO: VERY INEFFICIENT
+           '$output = $temp_data',  
            #'print $output',
            '$clean_output()')
 
@@ -165,8 +170,56 @@ s.add_rule('update',
            '$output = $temp_data', 
            '$clean_output()')
 
-# TODO: make copies of BCMs
-# TODO: make connections to sum of GCM...but skip for now
+# add rule to connect to GCM's sum node
+s.add_rule('outgoing',
+           'other.name == "sum"',
+           'other.parent().name == "GCM"',
+           'other.parent() == $parent().parent()')
+
+# make some more BCMs
+s.set_focus('parent')
+s.copy_node(N=8)
+
+
+
+# finish out GCM
+s.set_focus('parent')
+
+# add sum to GCM
+s.add_node('$name = "sum"')
+s.set_focus('$name == "sum"')
+s.add_rule('init', '$init_output()')
+
+# On every step, sum inputs, push sum to end of output vector
+s.add_rule('interact',
+           #'print $get_inputs()',
+           '$temp_data = sum($get_inputs())')
+s.add_rule('update',
+           '$output = $temp_data',  
+           #'print $output',
+           '$clean_output()')
+
+# want to make connections to thresh
+s.add_rule('outgoing',
+           'other.name == "thresh"',
+           '$parent() == other.parent()')
+
+# add thresh to GCM
+s.set_focus('parent')
+s.add_node('$name = "thresh"')
+s.set_focus('$name == "thresh"')
+s.add_rule('init', '$init_output()')
+
+# threshold input vector
+s.add_rule('interact',
+           # TODO: This is an ugly way of doing this
+           '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
+s.add_rule('update',
+           #'print $temp_data',
+           '$output = $temp_data', 
+           '$clean_output()')
+
+
 # Re-initialize entire circuit
 s.init_simulation()
 
@@ -184,82 +237,102 @@ s.connect(['$name == "biphasic"'],
 s.connect(['$name == "sum"'], 
           ['$name == "thresh"'])
 
+# connect BCM thresh to GCM sum
+# TODO: this is maybe where relative names would be nice...
+s.connect(['$name == "thresh"'], 
+          ['$name == "sum"'])
+
 
 #s.focus.show_cg()
 
 
-# TODO: write data to text files (in a folder.....) and VISUALIZE
-#       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
-# TODO: After have some visualization working, make biphasic kernel real.
-
-#for i in range(20):
-#    print '\n\nstep ', i
-#    s.step_simulation()
 
 
-# remember, can store s.focus in something....
-# wait, except this will probably store a reference...
-# could use filter_nodes...
+
+
+# prepare plotting stuff
 
 s.set_focus('root')
 s.set_focus('$name == "stimulus"')
 stim = s.focus
 
 s.set_focus('root')
-s.set_focus('$name == "GCM"')
-s.set_focus('$name == "BCM"')
-s.set_focus('$name == "biphasic"')
-bph = s.focus
 
-s.set_focus('parent')
-s.set_focus('$name == "thresh"')
-thr = s.focus
+# TODO: After have some visualization working, make biphasic kernel real
+# TODO: make connections to sum of GCM
+# TODO: could also have a 2nd set of plots that just shows the output of 
+#       everything (so won't be so slow)
+
+# TODO: Visualize GCM stuff (maybe separately)
+# TODO: Make all BCMs feed into single GCM
+
+
+# step the network a few times to get started
+for i in range(60):
+    print 'stepping'
+    s.step_simulation()
+
+bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
+biphasics = [list(s.focus.filter_nodes(C(['$name == "biphasic"',
+                                          'id($parent()) == ' + str(id(bcm))])))
+             for bcm in bcms]
+
+chosen_bcm = random.sample(bcms,1)[0]
+chosen_biphasics = list(s.focus.filter_nodes(C(['$name == "biphasic"',
+                                                'id($parent()) == ' + str(id(chosen_bcm))])))
+chosen_bcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
+                                              'id($parent()) == ' + str(id(chosen_bcm))])))[0]
+chosen_bcm_thresh = list(s.focus.filter_nodes(C(['$name == "thresh"',
+                                                 'id($parent()) == ' + str(id(chosen_bcm))])))[0]
+
+
+bcm_xs = [b.x for b in bcms]
+bcm_ys = [b.y for b in bcms]
+bph_xs = [[b.x for b in bph] for bph in biphasics]
+bph_ys = [[b.y for b in bph] for bph in biphasics]
+chosen_xs = [b.x for b in chosen_biphasics]
+chosen_ys = [b.y for b in chosen_biphasics]
 
 plt.ion()
 
-# TODO: Should put all graphs side-by-side? with labels and stuff
-# TODO: would also be nice to put a 'spot' over where the displayed BCM is
-# TODO: MAKE BETTER DISPLAY BEFORE CHANGING IRF!!!
-# TODO: should use more biphasics....and stim-points
-#       and display dots for both?
-# just show one BCM's worth of biphasics?
-# TODO: could have multiple plots with single dots where biphasics are
-#       then have biphasic output below in same column
-# TODO: could also have a 2nd set of plots that just shows the output of 
-#       everything (so won't be so slow)
-# TODO: Make things faster? (like faster plotting) (after everything works)
-# TODO: Maybe make stim_points less dense?
-
-
-# TODO: Make copies of biphasics in BCM
-# TODO: update plot to show locations of biphasics for one BCM (or more with
-#       different colors?
-# TODO: Make more BCMs and add GCM stuff
-# TODO: Visualize GCM stuff (maybe separately)
-
-
-#s.step_simulation()
-
-for i in range(50):
+for i in range(20):
+    #plt.ion()
     print 'step', i
     s.step_simulation()
     plt.cla()
     
-    # (num_rows, num_cols, plot_number)
-    plt.subplot(3,2,1)
+    plt.subplot2grid((7,6), (0,1), colspan=4, rowspan=4)
+    plt.xlim([0,19])
+    plt.ylim([0,19])
     plt.imshow(stim.sin_matrix, cmap='Greys')
+    plt.plot(bcm_xs, bcm_ys, marker='x', markersize=20, 
+             color='green', linestyle='none')    
+    for x,y in zip(bph_xs,bph_ys):
+        plt.plot(x, y, marker='o', markersize=8, linestyle='none')
+    # highlight chosen biphasics
+    plt.plot(chosen_xs, chosen_ys, marker='o', markersize=15, 
+             color='pink', linestyle='none')    
 
-    # why are these ones moving in opposite directions?
-    plt.subplot(3,2,2)
-    plt.imshow(np.resize(bph.output, (30, len(bph.output))), 
+    for i in range(len(chosen_biphasics)):
+        b = chosen_biphasics[i]
+        plt.subplot2grid((7,6), (4,i))
+        plt.imshow(np.resize(b.output, (10, len(b.output))), 
+                   cmap='Greys')
+
+    plt.subplot2grid((7,6), (5, 0))
+    plt.imshow(np.resize(chosen_bcm_sum.output, 
+                         (10, len(chosen_bcm_sum.output))), 
                cmap='Greys')
-    
-    plt.subplot(3,2,3)
-    plt.imshow(np.resize(thr.output, (30, len(thr.output))), 
+
+    plt.subplot2grid((7,6), (6, 0))
+    plt.imshow(np.resize(chosen_bcm_thresh.output, 
+                         (10, len(chosen_bcm_thresh.output))), 
                cmap='Greys')
+
 
     plt.draw()
+    #plt.ioff()
     #raw_input()
 
-#plt.cla()
 plt.ioff()
+
