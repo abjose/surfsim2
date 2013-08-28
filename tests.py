@@ -3,6 +3,8 @@
 #from rule import Constraint as C, ExecStep as E
 #from node import Node
 from context import Context
+import matplotlib.pyplot as plt
+import numpy as np
 
 """ NOTES    
 TODO: put useful Es and Cs into a file somewhere
@@ -72,7 +74,7 @@ s.add_rule('update',
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
 # TODO: want to change copy_node so that it takes constraints? 
-s.copy_node(N=10)
+s.copy_node(N=50)
 
 # Add another node to root to act as the Ganglion Cell Module
 s.set_focus('parent')
@@ -159,13 +161,12 @@ s.add_rule('interact',
            # TODO: This is an ugly way of doing this
            '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
 s.add_rule('update',
-           'print $temp_data',
+           #'print $temp_data',
            '$output = $temp_data', 
            '$clean_output()')
 
 # TODO: make copies of BCMs
 # TODO: make connections to sum of GCM...but skip for now
-
 # Re-initialize entire circuit
 s.init_simulation()
 
@@ -191,6 +192,74 @@ s.connect(['$name == "sum"'],
 #       (could use MATLAB/Igor, but maybe easier to use PyPlot or something)
 # TODO: After have some visualization working, make biphasic kernel real.
 
-for i in range(20):
-    print '\n\nstep ', i
+#for i in range(20):
+#    print '\n\nstep ', i
+#    s.step_simulation()
+
+
+# remember, can store s.focus in something....
+# wait, except this will probably store a reference...
+# could use filter_nodes...
+
+s.set_focus('root')
+s.set_focus('$name == "stimulus"')
+stim = s.focus
+
+s.set_focus('root')
+s.set_focus('$name == "GCM"')
+s.set_focus('$name == "BCM"')
+s.set_focus('$name == "biphasic"')
+bph = s.focus
+
+s.set_focus('parent')
+s.set_focus('$name == "thresh"')
+thr = s.focus
+
+plt.ion()
+
+# TODO: Should put all graphs side-by-side? with labels and stuff
+# TODO: would also be nice to put a 'spot' over where the displayed BCM is
+# TODO: MAKE BETTER DISPLAY BEFORE CHANGING IRF!!!
+# TODO: should use more biphasics....and stim-points
+#       and display dots for both?
+# just show one BCM's worth of biphasics?
+# TODO: could have multiple plots with single dots where biphasics are
+#       then have biphasic output below in same column
+# TODO: could also have a 2nd set of plots that just shows the output of 
+#       everything (so won't be so slow)
+# TODO: Make things faster? (like faster plotting) (after everything works)
+# TODO: Maybe make stim_points less dense?
+
+
+# TODO: Make copies of biphasics in BCM
+# TODO: update plot to show locations of biphasics for one BCM (or more with
+#       different colors?
+# TODO: Make more BCMs and add GCM stuff
+# TODO: Visualize GCM stuff (maybe separately)
+
+
+#s.step_simulation()
+
+for i in range(50):
+    print 'step', i
     s.step_simulation()
+    plt.cla()
+    
+    # (num_rows, num_cols, plot_number)
+    plt.subplot(3,2,1)
+    plt.imshow(stim.sin_matrix, cmap='Greys')
+
+    # why are these ones moving in opposite directions?
+    plt.subplot(3,2,2)
+    plt.imshow(np.resize(bph.output, (30, len(bph.output))), 
+               cmap='Greys')
+    
+    plt.subplot(3,2,3)
+    plt.imshow(np.resize(thr.output, (30, len(thr.output))), 
+               cmap='Greys')
+
+    plt.draw()
+    #raw_input()
+
+#plt.cla()
+plt.ioff()
