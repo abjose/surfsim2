@@ -16,6 +16,10 @@ __all__ = ['dist', 'rand', 'rand_centered', 'biphasic', 'threshold',
            'verify_single', 'Grid', 'SinusoidInput']
 
 def dist(a, b):
+    print a
+    print b
+    print np.linalg.norm(np.array(a) - np.array(b))
+    #raw_input()
     return np.linalg.norm(np.array(a) - np.array(b))
 
 def rand(a=0, b=1):
@@ -30,11 +34,16 @@ def biphasic(size, A):
     # initalize a biphasic irf of size length and A amplitude
     # for testing: identity irf
     #return np.array([1])
-    t = np.arange(0,16,0.1)
-    IRF = A*(2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
+    #t = np.arange(0,16,0.1)
+    #print A
+    #raw_input()
+    t = np.arange(0,size)
+    #IRF = A*(2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
+    IRF = (2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
     IRF /= sum(IRF)
+    IRF *= A
     # TODO: for debugging could have this plot IRF along with A or something?
-    return IRF[::-1]
+    return -1*IRF#[::-1]
 
 
 def threshold(array, thresh):
