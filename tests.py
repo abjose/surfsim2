@@ -258,24 +258,29 @@ stim = s.focus
 
 s.set_focus('root')
 
-# TODO: Make biphasic IRF 'real'
-# TODO: could also have a 2nd set of plots that just shows the output of 
-#       everything (so won't be so slow)
-
-
-# step the network a few times to get started
-for i in range(60):
-    print 'stepping'
-    s.step_simulation()
+# TODO: turn off color adjustment thing - could just update max and min
+#       values during initial steps?
+# TODO: show IRF filter above each biphasic
+# TODO: consider storing more data (n+m-1), then only plotting a bit less
+# TODO: color BCM Xs corresponding to dot colors?
+# TODO: make biphasic IRF smaller!
+# NOTE: only need extension on one side - because IRF makes point at only
+#       one side
+# TODO: biphasic should 'value' recent time more
+# TODO: reverse direction of time?
+# TODO: consider running a bunch to prime, _then_ running a bunch to get
+#       more realistic max/mins? See what kind of difference this makes.
 
 bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
 biphasics = [list(s.focus.filter_nodes(C(['$name == "biphasic"',
                                           'id($parent()) == ' + str(id(bcm))])))
              for bcm in bcms]
 
+# select things for easier plotting
 chosen_bcm = random.sample(bcms,1)[0]
 chosen_biphasics = list(s.focus.filter_nodes(C(['$name == "biphasic"',
-                                                'id($parent()) == ' + str(id(chosen_bcm))])))
+                                                'id($parent()) == ' + 
+                                                str(id(chosen_bcm))])))
 bcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
                                        'id($parent()) == ' + 
                                        str(id(chosen_bcm))])))[0]
@@ -297,18 +302,68 @@ bph_ys = [[b.y for b in bph] for bph in biphasics]
 chosen_xs = [b.x for b in chosen_biphasics]
 chosen_ys = [b.y for b in chosen_biphasics]
 
-plt.ion()
 
-for i in range(20):
+# step the network a few times to 'prime' things
+prime_steps = 150
+for i in range(prime_steps):
+    print 'priming:', i+1, '/', prime_steps
+    s.step_simulation()
+
+# initialize mins/maxes
+stim_min = np.min(stim.sin_matrix)
+stim_max = np.max(stim.sin_matrix)
+bph_min = min([min(b.output) for b in chosen_biphasics])
+bph_max = max([max(b.output) for b in chosen_biphasics])
+bcm_sum_min = min(bcm_sum.output)
+bcm_sum_max = max(bcm_sum.output)
+bcm_thresh_min = min(bcm_thresh.output)
+bcm_thresh_max = max(bcm_thresh.output)
+gcm_sum_min = min(gcm_sum.output)
+gcm_sum_max = max(gcm_sum.output)
+gcm_thresh_min = min(gcm_thresh.output)
+gcm_thresh_max = max(gcm_thresh.output)
+
+
+print stim_min, stim_max
+print bph_min, bph_max
+
+
+# now step some times to get better mins/maxes
+range_steps = 150
+for i in range(range_steps):
+    print 'ranging:', i+1, '/', range_steps
+    s.step_simulation()
+    stim_min = min(stim_min, np.min(stim.sin_matrix))
+    stim_max = max(stim_max, np.max(stim.sin_matrix))
+    bph_min = min(bph_min, min([min(b.output) for b in chosen_biphasics]))
+    bph_max = max(bph_max, max([max(b.output) for b in chosen_biphasics]))
+    bcm_sum_min = min(bcm_sum_min, min(bcm_sum.output))
+    bcm_sum_max = max(bcm_sum_max, max(bcm_sum.output))
+    bcm_thresh_min = min(bcm_thresh_min, min(bcm_thresh.output))
+    bcm_thresh_max = max(bcm_thresh_max, max(bcm_thresh.output))
+    gcm_sum_min = min(gcm_sum_min, min(gcm_sum.output))
+    gcm_sum_max = max(gcm_sum_max, max(gcm_sum.output))
+    gcm_thresh_min = min(gcm_thresh_min, min(gcm_thresh.output))
+    gcm_thresh_max = max(gcm_thresh_max, max(gcm_thresh.output))
+
+print stim_min, stim_max
+print bph_min, bph_max
+
+plt.ion()
+#plt.axis('off')
+
+for i in range(200):
     #plt.ion()
-    print 'step', i
+    print 'plotting:', prime_steps+range_steps+i
     s.step_simulation()
     plt.cla()
     
-    plt.subplot2grid((9,6), (0,1), colspan=4, rowspan=4)
+    plt.subplot2grid((10,6), (0,1), colspan=4, rowspan=4)
     plt.xlim([0,19])
     plt.ylim([0,19])
-    plt.imshow(stim.sin_matrix, cmap='Greys')
+    plt.axis('off')
+    plt.title('Input and node locations')
+    plt.imshow(stim.sin_matrix, cmap='Greys', vmin=stim_min, vmax=stim_max)
     plt.plot(bcm_xs, bcm_ys, marker='x', markersize=20, 
              color='green', linestyle='none')    
     for x,y in zip(bph_xs,bph_ys):
@@ -319,31 +374,46 @@ for i in range(20):
 
     for i in range(len(chosen_biphasics)):
         b = chosen_biphasics[i]
-        plt.subplot2grid((9,6), (4,i))
+        plt.subplot2grid((10,7), (4,i))
+        plt.axis('off')
+        plt.title('biphasic inputs')
+        plt.imshow(np.resize(b.get_sources()[0].output, (10, len(b.output))), 
+                   cmap='Greys', vmin=stim_min, vmax=stim_max)
+        plt.subplot2grid((10,7), (5,i))
+        plt.axis('off')
+        plt.title('biphasic outputs')
         plt.imshow(np.resize(b.output, (10, len(b.output))), 
-                   cmap='Greys')
+                   cmap='Greys', vmin=bph_min, vmax=bph_max)
 
-    plt.subplot2grid((9,6), (5, 0))
+    plt.subplot2grid((10,7), (6, 0))
+    plt.axis('off')
+    plt.title('bcm sum')
     plt.imshow(np.resize(bcm_sum.output, (10, len(bcm_sum.output))), 
-               cmap='Greys')
+               cmap='Greys', vmin=bcm_sum_min, vmax=bcm_sum_max)
 
-    plt.subplot2grid((9,6), (6, 0))
+    plt.subplot2grid((10,7), (7, 0))
+    plt.axis('off')
+    plt.title('bcm thresh')
     plt.imshow(np.resize(bcm_thresh.output,(10, len(bcm_thresh.output))),
-               cmap='Greys')
+               cmap='Greys', vmin=bcm_thresh_min, vmax=bcm_thresh_max)
 
 
-    plt.subplot2grid((9,6), (7, 1))
+    plt.subplot2grid((10,7), (8, 0))
+    plt.axis('off')
+    plt.title('gcm sum')
     plt.imshow(np.resize(gcm_sum.output, (10, len(gcm_sum.output))), 
-               cmap='Greys')
+               cmap='Greys', vmin=gcm_sum_min, vmax=gcm_sum_max)
 
-    plt.subplot2grid((9,6), (8, 1))
+    plt.subplot2grid((10,7), (9, 0))
+    plt.axis('off')
+    plt.title('gcm thresh')
     plt.imshow(np.resize(gcm_thresh.output,(10, len(gcm_thresh.output))),
-               cmap='Greys')
+               cmap='Greys', vmin=gcm_thresh_min, vmax=gcm_thresh_max)
 
 
     plt.draw()
     #plt.ioff()
-    #raw_input()
+    raw_input()
 
 plt.ioff()
 
