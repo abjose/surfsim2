@@ -27,6 +27,7 @@ TODO: Would be nice to add something that catches exceptions when ExecSteps
 TODO: Have warnings when variables are made without being prepended by $ or 
       other?
 TODO: Why is nothing shown for initialization during copies?
+TODO: Appending to numpy arrays is bad, do some other way
 """
 
 # create context
@@ -35,7 +36,7 @@ s = Context()
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
 s.add_rule('init',
            "$bcm_radius = 4",
-           "$kernel_length = 10"
+           "$kernel_length = 10",
            "$output_length = 50",
            "$stim_size = 20")
 # NOTE: these are one longer than you think?
@@ -104,19 +105,20 @@ s.set_focus('$name == "biphasic"')
 # Position randomly in a circle centered on parent
 s.add_rule('init',
            "$x=rand_centered($parent().x, $bcm_radius)",
-           "$y=rand_centered($parent().y, $bcm_radius)")
+           "$y=rand_centered($parent().y, $bcm_radius)",
+           "$init_output()")
 
 # Add a biphasic irf with amplitude proportional to distance from parent
 s.add_rule('init', 
            '$irf = biphasic($kernel_length, ' + 
-           '1/dist(($parent().x, $parent().y), ($x, $y)))') # ??? TODO
+           '1./dist(($parent().x, $parent().y), ($x, $y)))')
 
 # use irf to update output vector
 s.add_rule('interact',
-           '$temp_data = $convolve_input()')
+           '$temp_data = $dot_input()')
 s.add_rule('update',
            #'print $temp_data',
-           '$output = $temp_data',
+           '$output = np.append($output, $temp_data)',
            '$clean_output()') 
 
 # Get connections from nearest input node
@@ -259,47 +261,15 @@ stim = s.focus
 
 s.set_focus('root')
 
-# TODO: show IRF filter above each biphasic
-# TODO: consider storing more data (n+m-1), then only plotting a bit less
-# TODO: color BCM Xs corresponding to dot colors?
-# TODO: make biphasic IRF smaller!
-# NOTE: only need extension on one side - because IRF makes point at only
-#       one side
+
+# NOTE: (for convolution) only need extension on one side - because IRF makes 
+#       point at only one side
 # TODO: biphasic should 'value' recent time more
-# TODO: reverse direction of time?
-# TODO: Verify that min/maxes are right?...
 
-"""
-To handle convolution edges, need to set "desired" output length
-also have to set IRF
-_then_, after both, tell to init_output
-and will initialize output properly such that it has a 'backlog' of
-the necessary number of things (but most recent step can always be most recent,
-right)
-and convolution is done on the entire thing
-but 'output' only shows the desired amount
-WAIT, don't things that don't use convolution also use init_output?
-In which case you should check if IRF exists, if not don't modify
-output in any special way
-Ideally don't really have to change much of anything
-probably need to store output_length in addition to kernel_length
 
-What to do about passing data on, though?
-Need to append every time?
-Should probably make a function for that
-so if output is 50 and actual output is 70
-EEEERRRRR, WAIT, do you really need to convolve everything?
-you're just getting one new point, right?
-so why convolve everything?
-just get dot product or whatever of most recent (however many) steps
-each step
-so it's like the 'temporal' convolution
-If you change everything to take advantage of this (inlcuding sums and stuff)
-then might be much faster...
-Should verify it's the same somehow
-"""
 
-Bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
+
+bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
 biphasics = [list(s.focus.filter_nodes(C(['$name == "biphasic"',
                                           'id($parent()) == ' + str(id(bcm))])))
              for bcm in bcms]
@@ -322,6 +292,8 @@ gcm_thresh = list(s.focus.filter_nodes(C(['$name == "thresh"',
                                           '$parent().name == "GCM"'])))[0]
 
 
+
+colors = ['green', 'blue', 'yellow', 'red', 'magenta', 'orange', 'beige', 'LimeGreen', 'aqua']
 
 bcm_xs = [b.x for b in bcms]
 bcm_ys = [b.y for b in bcms]
@@ -386,53 +358,63 @@ for i in range(200):
     s.step_simulation()
     plt.cla()
     
-    plt.subplot2grid((10,6), (0,1), colspan=4, rowspan=4)
+    plt.subplot2grid((11,6), (0,1), colspan=4, rowspan=4)
     plt.xlim([0,19])
     plt.ylim([0,19])
     plt.axis('off')
     plt.title('Input and node locations')
     plt.imshow(stim.sin_matrix, cmap='Greys', vmin=stim_min, vmax=stim_max)
-    plt.plot(bcm_xs, bcm_ys, marker='x', markersize=20, 
-             color='green', linestyle='none')    
-    for x,y in zip(bph_xs,bph_ys):
-        plt.plot(x, y, marker='o', markersize=8, linestyle='none')
-    # highlight chosen biphasics
+    for i in range(len(bcm_xs)):
+        plt.plot(bcm_xs[i], bcm_ys[i], marker='x', markersize=20, 
+                 color=colors[i], markeredgewidth=2)    
+    for i,(x,y) in enumerate(zip(bph_xs,bph_ys)):
+        plt.plot(x, y, marker='o', linestyle='none', markersize=8, 
+                 color=colors[i])
+
+    # highlight chosen biphasics    
+    plt.plot(chosen_bcm.x, chosen_bcm.y, marker='x', markersize=20, 
+             color='pink', markeredgewidth=2)    
     plt.plot(chosen_xs, chosen_ys, marker='o', markersize=15, 
              color='pink', linestyle='none')    
 
     for i in range(len(chosen_biphasics)):
         b = chosen_biphasics[i]
-        plt.subplot2grid((10,7), (4,i))
+        plt.subplot2grid((11,7), (4,i))
+        plt.ylim([-1,1])
+        plt.title('biphasic irf')
+        plt.plot([0]*len(b.irf))
+        plt.plot(b.irf)
+        plt.subplot2grid((11,7), (5,i))
         plt.axis('off')
-        plt.title('biphasic inputs')
+        plt.title('biphasic input')
         plt.imshow(np.resize(b.get_sources()[0].output, (10, len(b.output))), 
                    cmap='Greys', vmin=stim_min, vmax=stim_max)
-        plt.subplot2grid((10,7), (5,i))
+        plt.subplot2grid((11,7), (6,i))
         plt.axis('off')
-        plt.title('biphasic outputs')
+        plt.title('biphasic output')
         plt.imshow(np.resize(b.output, (10, len(b.output))), 
                    cmap='Greys', vmin=bph_min, vmax=bph_max)
 
-    plt.subplot2grid((10,7), (6, 0))
+    plt.subplot2grid((11,7), (7, 0))
     plt.axis('off')
     plt.title('bcm sum')
     plt.imshow(np.resize(bcm_sum.output, (10, len(bcm_sum.output))), 
                cmap='Greys', vmin=bcm_sum_min, vmax=bcm_sum_max)
 
-    plt.subplot2grid((10,7), (7, 0))
+    plt.subplot2grid((11,7), (8, 0))
     plt.axis('off')
     plt.title('bcm thresh')
     plt.imshow(np.resize(bcm_thresh.output,(10, len(bcm_thresh.output))),
                cmap='Greys', vmin=bcm_thresh_min, vmax=bcm_thresh_max)
 
 
-    plt.subplot2grid((10,7), (8, 0))
+    plt.subplot2grid((11,7), (9, 0))
     plt.axis('off')
     plt.title('gcm sum')
     plt.imshow(np.resize(gcm_sum.output, (10, len(gcm_sum.output))), 
                cmap='Greys', vmin=gcm_sum_min, vmax=gcm_sum_max)
 
-    plt.subplot2grid((10,7), (9, 0))
+    plt.subplot2grid((11,7), (10, 0))
     plt.axis('off')
     plt.title('gcm thresh')
     plt.imshow(np.resize(gcm_thresh.output,(10, len(gcm_thresh.output))),
