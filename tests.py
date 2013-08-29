@@ -35,7 +35,8 @@ s = Context()
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
 s.add_rule('init',
            "$bcm_radius = 4",
-           "$kernel_length = 30",
+           "$kernel_length = 10"
+           "$output_length = 50",
            "$stim_size = 20")
 # NOTE: these are one longer than you think?
 
@@ -258,8 +259,6 @@ stim = s.focus
 
 s.set_focus('root')
 
-# TODO: turn off color adjustment thing - could just update max and min
-#       values during initial steps?
 # TODO: show IRF filter above each biphasic
 # TODO: consider storing more data (n+m-1), then only plotting a bit less
 # TODO: color BCM Xs corresponding to dot colors?
@@ -268,10 +267,39 @@ s.set_focus('root')
 #       one side
 # TODO: biphasic should 'value' recent time more
 # TODO: reverse direction of time?
-# TODO: consider running a bunch to prime, _then_ running a bunch to get
-#       more realistic max/mins? See what kind of difference this makes.
+# TODO: Verify that min/maxes are right?...
 
-bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
+"""
+To handle convolution edges, need to set "desired" output length
+also have to set IRF
+_then_, after both, tell to init_output
+and will initialize output properly such that it has a 'backlog' of
+the necessary number of things (but most recent step can always be most recent,
+right)
+and convolution is done on the entire thing
+but 'output' only shows the desired amount
+WAIT, don't things that don't use convolution also use init_output?
+In which case you should check if IRF exists, if not don't modify
+output in any special way
+Ideally don't really have to change much of anything
+probably need to store output_length in addition to kernel_length
+
+What to do about passing data on, though?
+Need to append every time?
+Should probably make a function for that
+so if output is 50 and actual output is 70
+EEEERRRRR, WAIT, do you really need to convolve everything?
+you're just getting one new point, right?
+so why convolve everything?
+just get dot product or whatever of most recent (however many) steps
+each step
+so it's like the 'temporal' convolution
+If you change everything to take advantage of this (inlcuding sums and stuff)
+then might be much faster...
+Should verify it's the same somehow
+"""
+
+Bcms = s.focus.filter_nodes(C(['$name == "BCM"']))
 biphasics = [list(s.focus.filter_nodes(C(['$name == "biphasic"',
                                           'id($parent()) == ' + str(id(bcm))])))
              for bcm in bcms]
