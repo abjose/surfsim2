@@ -155,7 +155,7 @@ class Node(object):
         # TODO: sometimes this recurses all the way back to root...avoid?
         # TODO: make default better...
         # TODO: Is this behavior what you want?!?!?!?
-        default = [np.array([0.]*self.kernel_length)]
+        default = [np.array([0.]*self.output_length)]
         inputs  = [p.output for p in self.get_sources() if p.output != None]
         return inputs if inputs != [] else default
     
@@ -167,7 +167,7 @@ class Node(object):
         # BUT HOW to ultimately make children connect to other's children?
         # This will stay at the same "level" on one side at all times...
         # should this call connect_from in the other group?
-        pass
+        #pass
     #def connect_from(self, node):
     #    pass
     
@@ -204,39 +204,47 @@ class Node(object):
             exec(step.cmd) # uggggly
 
 
-
     """ INPUT/OUTPUT FUNCTIONS """
 
-    def convolve_input(self, ):
+    def convolve_input(self):
         # assumes there are incoming connections and self.irf exists
-        # sorta strange to have, but justified because so common?
         # should perhaps make into set of strings instead, and put
         # into 'utils' or wherever sets of do-things strings are put?
 
-        # TODO: HMMMMM, this doesn't neccessarily return a full-sized array...
-        # what to do? could pad? 
+        # NOTE: should actually store n+m-1 input if useing this
         # or could store extra input values equal to size of irf?
         # or just do 'same' for now?
         # could 'blend' the filtered and unfiltered vectors...
         input_nodes = self.get_sources()
-        #print 'input node output: ', input_nodes[0].output
-        #print 'irf: ', self.irf
         if input_nodes == []:
             raise Exception('No incoming connections to convolve!')
         elif len(input_nodes) > 1:
             raise Exception('Too many inputs to convolve!')
-        
         return np.convolve(input_nodes[0].output, self.irf, mode='same')
-    
+
+    def dot_input(self):
+        # don't do full convolution, just do for one time step
+        # make sure to try flipping IRF
+        input_nodes = self.get_sources()
+        assert len(input_nodes) == 1
+        assert len(input_nodes[0].output) > len(self.irf)
+        #return np.dot(input_nodes[0].output[-len(self.irf):], self.irf)
+        return np.dot(input_nodes[0].output[-len(self.irf):], self.irf[::-1])
+
 
     def clean_output(self):
         # make sure output is a numpy array of the right length
         # assumes output and kernel_length exist...
         # NOTE: This should potentially be put into Utils.
-        assert len(self.output) >= self.kernel_length
+        #print self.name
+        #print len(self.output)
+        #print self.kernel_length
+        #print len(self.irf)
+        #assert len(self.output) >= self.kernel_length
         # take newest slice
         #print 'BEFORE: ', self.output
-        self.output = np.array(self.output[-self.kernel_length:])
+        #print self.output_length
+        self.output = np.array(self.output[-self.output_length:])
         #print 'AFTER: ', self.output
 
 
@@ -244,10 +252,12 @@ class Node(object):
         """ Given kernel_length, intialize a numpy a numpy array. """
         # assumes kernel_length and IRF exist already!!
         # NOTE: This should potentially be put into Utils.
-        k = 0
-        if self.irf != None:
-            k = self.kernel_length
-        self.output = np.array([default]*(self.output_length+k-1))
+        #k = 0
+        #if self.irf != None:
+        #    k = self.kernel_length
+        #self.output = np.array([default]*(self.output_length+k-1))
+        self.output = np.array([default]*self.output_length)
+        #print self.output
 
     #def reset(self, order='pic'):
     #    pass
