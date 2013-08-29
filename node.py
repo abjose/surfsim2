@@ -242,8 +242,12 @@ class Node(object):
 
     def init_output(self, default=0.):
         """ Given kernel_length, intialize a numpy a numpy array. """
+        # assumes kernel_length and IRF exist already!!
         # NOTE: This should potentially be put into Utils.
-        self.output = np.array([default]*self.kernel_length)
+        k = 0
+        if self.irf != None:
+            k = self.kernel_length
+        self.output = np.array([default]*(self.output_length+k-1))
 
     #def reset(self, order='pic'):
     #    pass
