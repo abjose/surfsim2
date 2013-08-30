@@ -352,7 +352,7 @@ print bph_min, bph_max
 plt.ion()
 #plt.axis('off')
 
-for i in range(200):
+for i in range(500):
     #plt.ion()
     print 'plotting:', prime_steps+range_steps+i
     s.step_simulation()
