@@ -98,9 +98,10 @@ class Grid(BaseStructure):
 
 
 
+# TODO: Have some kind of stimulus base class?
 
 # SHOULD PROBABLY REDO THIS, COPIED FROM SURFSIM
-class SinusoidInput(object):
+class SinusoidStim(object):
     #import numpy as np
 
     def __init__(self, side, spacing=0.1, f=5, amp=1, step_size=.5):
@@ -121,3 +122,9 @@ class SinusoidInput(object):
 
     def get_dims(self):
         return (self.side, self.side)
+
+class SquareWaveStim(object):
+    pass
+
+class BarStim(object):
+    pass
