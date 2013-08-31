@@ -39,7 +39,7 @@ s.add_rule('init',
            "$kernel_length = 10",
            "$output_length = 50",
            "$stim_size = 20")
-# NOTE: these are one longer than you think?
+# NOTE: these are one longer than you think - fix?
 
 # add a container for stimulus and 'focus' on it
 s.add_node('$name = "stimulus"')
@@ -52,7 +52,7 @@ s.add_rule('init',
 
 # also maintain a matrix of sinusoid values for stimulus points to access
 s.add_rule('init',
-           '$sin_input = SinusoidInput($stim_size, $stim_size)',
+           '$sin_input = SinusoidStim($stim_size, $stim_size)',
            '$sin_input.step()', 
            '$sin_matrix = $sin_input.output')
 s.add_rule('update',
