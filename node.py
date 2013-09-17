@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy    as np
 import pprint
 
-
 from utils import * # try to remove...
 from rule import ExecStep, Constraint
 
@@ -156,7 +155,8 @@ class Node(object):
         # TODO: make default better...
         # TODO: Is this behavior what you want?!?!?!?
         default = [np.array([0.]*self.output_length)]
-        inputs  = [p.output for p in self.get_sources() if p.output != None]
+        inputs  = [p.get_output() for p in self.get_sources() 
+                   if p.get_output() != None]
         return inputs if inputs != [] else default
     
     #def connect_to(self, node):
@@ -220,16 +220,16 @@ class Node(object):
             raise Exception('No incoming connections to convolve!')
         elif len(input_nodes) > 1:
             raise Exception('Too many inputs to convolve!')
-        return np.convolve(input_nodes[0].output, self.irf, mode='same')
+        return np.convolve(input_nodes[0].get_output(), self.irf, mode='same')
 
     def dot_input(self):
         # don't do full convolution, just do for one time step
         # make sure to try flipping IRF
         input_nodes = self.get_sources()
         assert len(input_nodes) == 1
-        assert len(input_nodes[0].output) > len(self.irf)
-        #return np.dot(input_nodes[0].output[-len(self.irf):], self.irf)
-        return np.dot(input_nodes[0].output[-len(self.irf):], self.irf[::-1])
+        out = input_nodes[0].get_output()
+        assert len(out) > len(self.irf)
+        return np.dot(out[-len(self.irf):], self.irf[::-1])
 
 
     def clean_output(self):
@@ -263,22 +263,38 @@ class Node(object):
     #    pass
 
 
-    def get_output():
-        # assumes output_length....shouldn't?
-        return self.data(-self.output_length:)
+
+    def init_data(self, length):
+        """ Given kernel_length, intialize a numpy a numpy array. """
+        # assumes kernel_length and IRF exist already!!
+        # NOTE: This should potentially be put into Utils.
+        self.data = np.array([0.]*length)
 
     def set_data(self, d):
-        self.data = d
+        # d should be vector
+        self.data = np.array(d)
 
     def append_data(self, d):
-        # DO THIS BETTER!
-        self.data = np.array(list(self.data) + [d])
+        # d should be a vector or single value
+        #print 'd', d
+        d = d if isinstance(d,list) else [d] #blehh
+        l_data = len(self.data)
+        l_d    = len(d)
+        # will not using refcheck create problems?
+        self.data.resize(l_data + l_d, refcheck=False) 
+        self.data[l_data:] = d
 
     def clean_data(self, length):
         """ Cut data to given length. """
         # DO THIS BETTER!
         # self.output = np.array(self.output[-self.output_length:])
         self.data = np.array(self.data[-length:])
+
+    def get_output(self):
+        # assumes output_length....shouldn't?
+        #print self.data[-self.output_length:]
+        return self.data[-self.output_length:]
+
 
     """ mini todo
     - sure you want to call 'data'? could use...vector? output?

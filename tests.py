@@ -66,14 +66,18 @@ s.set_focus('$name == "stim_point"')
 # make stim_point read from its associated position in parent's sinusoid matrix
 s.add_rule('init', 
            '$x, $y = $child_grid.get_next()',
-           '$init_output()')
+           #'$init_output()'
+           '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
            #'print "TEMP_DATA: ", $temp_data',
-           '$output = np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
+           '$append_data($temp_data)',
+           #'$output = np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
            #'print $output',
-           '$clean_output()')
+           #'$clean_output()'
+           #'print $data',
+           '$clean_data($output_length)')
 
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
@@ -106,7 +110,8 @@ s.set_focus('$name == "biphasic"')
 s.add_rule('init',
            "$x=rand_centered($parent().x, $bcm_radius)",
            "$y=rand_centered($parent().y, $bcm_radius)",
-           "$init_output()")
+           #"$init_output()"
+           '$init_data($output_length)')
 
 # Add a biphasic irf with amplitude proportional to distance from parent
 s.add_rule('init', 
@@ -118,8 +123,10 @@ s.add_rule('interact',
            '$temp_data = $dot_input()')
 s.add_rule('update',
            #'print $temp_data',
-           '$output = np.append($output, $temp_data)',
-           '$clean_output()') 
+           '$append_data($temp_data)',
+           #'$output = np.append($output, $temp_data)',
+           #'$clean_output()'
+           '$clean_data($output_length)') 
 
 # Get connections from nearest input node
 # could put something in parent to help?
@@ -141,16 +148,18 @@ s.copy_node(N=5)
 s.set_focus('parent')
 s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
-s.add_rule('init', '$init_output()')
+s.add_rule('init', '$init_data($output_length)')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
            #'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output = $temp_data',  
+           #'$output = $temp_data',  
+           '$set_data($temp_data)',
            #'print $output',
-           '$clean_output()')
+           #'$clean_output()'
+           '$clean_data($output_length)')
 
 # want to make connections to thresh
 s.add_rule('outgoing',
@@ -162,7 +171,7 @@ s.add_rule('outgoing',
 s.set_focus('parent')
 s.add_node('$name = "thresh"')
 s.set_focus('$name == "thresh"')
-s.add_rule('init', '$init_output()')
+s.add_rule('init', '$init_data($output_length)')
 
 # threshold input vector
 s.add_rule('interact',
@@ -170,8 +179,10 @@ s.add_rule('interact',
            '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
 s.add_rule('update',
            #'print $temp_data',
-           '$output = $temp_data', 
-           '$clean_output()')
+           '$set_data($temp_data)',
+           #'$output = $temp_data', 
+           #'$clean_output()'
+           '$clean_data($output_length)')
 
 # add rule to connect to GCM's sum node
 s.add_rule('outgoing',
@@ -191,16 +202,18 @@ s.set_focus('parent')
 # add sum to GCM
 s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
-s.add_rule('init', '$init_output()')
+s.add_rule('init', '$init_data($output_length)')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
            #'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           '$output = $temp_data',  
+           '$set_data($temp_data)',
+           #'$output = $temp_data',  
            #'print $output',
-           '$clean_output()')
+           #'$clean_output()'
+           '$clean_data($output_length)')
 
 # want to make connections to thresh
 s.add_rule('outgoing',
@@ -211,7 +224,7 @@ s.add_rule('outgoing',
 s.set_focus('parent')
 s.add_node('$name = "thresh"')
 s.set_focus('$name == "thresh"')
-s.add_rule('init', '$init_output()')
+s.add_rule('init', '$init_data($output_length)')
 
 # threshold input vector
 s.add_rule('interact',
@@ -219,8 +232,10 @@ s.add_rule('interact',
            '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
 s.add_rule('update',
            #'print $temp_data',
-           '$output = $temp_data', 
-           '$clean_output()')
+           '$set_data($temp_data)',
+           #'$output = $temp_data', 
+           #'$clean_output()'
+           '$clean_data($output_length)')
 
 
 # Re-initialize entire circuit
@@ -279,6 +294,7 @@ chosen_bcm = random.sample(bcms,1)[0]
 chosen_biphasics = list(s.focus.filter_nodes(C(['$name == "biphasic"',
                                                 'id($parent()) == ' + 
                                                 str(id(chosen_bcm))])))
+
 bcm_sum = list(s.focus.filter_nodes(C(['$name == "sum"',
                                        'id($parent()) == ' + 
                                        str(id(chosen_bcm))])))[0]
@@ -312,16 +328,16 @@ for i in range(prime_steps):
 # initialize mins/maxes
 stim_min = np.min(stim.sin_matrix)
 stim_max = np.max(stim.sin_matrix)
-bph_min = min([min(b.output) for b in chosen_biphasics])
-bph_max = max([max(b.output) for b in chosen_biphasics])
-bcm_sum_min = min(bcm_sum.output)
-bcm_sum_max = max(bcm_sum.output)
-bcm_thresh_min = min(bcm_thresh.output)
-bcm_thresh_max = max(bcm_thresh.output)
-gcm_sum_min = min(gcm_sum.output)
-gcm_sum_max = max(gcm_sum.output)
-gcm_thresh_min = min(gcm_thresh.output)
-gcm_thresh_max = max(gcm_thresh.output)
+bph_min = min([min(b.get_output()) for b in chosen_biphasics])
+bph_max = max([max(b.get_output()) for b in chosen_biphasics])
+bcm_sum_min = min(bcm_sum.get_output())
+bcm_sum_max = max(bcm_sum.get_output())
+bcm_thresh_min = min(bcm_thresh.get_output())
+bcm_thresh_max = max(bcm_thresh.get_output())
+gcm_sum_min = min(gcm_sum.get_output())
+gcm_sum_max = max(gcm_sum.get_output())
+gcm_thresh_min = min(gcm_thresh.get_output())
+gcm_thresh_max = max(gcm_thresh.get_output())
 
 
 print stim_min, stim_max
@@ -335,16 +351,16 @@ for i in range(range_steps):
     s.step_simulation()
     stim_min = min(stim_min, np.min(stim.sin_matrix))
     stim_max = max(stim_max, np.max(stim.sin_matrix))
-    bph_min = min(bph_min, min([min(b.output) for b in chosen_biphasics]))
-    bph_max = max(bph_max, max([max(b.output) for b in chosen_biphasics]))
-    bcm_sum_min = min(bcm_sum_min, min(bcm_sum.output))
-    bcm_sum_max = max(bcm_sum_max, max(bcm_sum.output))
-    bcm_thresh_min = min(bcm_thresh_min, min(bcm_thresh.output))
-    bcm_thresh_max = max(bcm_thresh_max, max(bcm_thresh.output))
-    gcm_sum_min = min(gcm_sum_min, min(gcm_sum.output))
-    gcm_sum_max = max(gcm_sum_max, max(gcm_sum.output))
-    gcm_thresh_min = min(gcm_thresh_min, min(gcm_thresh.output))
-    gcm_thresh_max = max(gcm_thresh_max, max(gcm_thresh.output))
+    bph_min = min(bph_min, min([min(b.get_output()) for b in chosen_biphasics]))
+    bph_max = max(bph_max, max([max(b.get_output()) for b in chosen_biphasics]))
+    bcm_sum_min = min(bcm_sum_min, min(bcm_sum.get_output()))
+    bcm_sum_max = max(bcm_sum_max, max(bcm_sum.get_output()))
+    bcm_thresh_min = min(bcm_thresh_min, min(bcm_thresh.get_output()))
+    bcm_thresh_max = max(bcm_thresh_max, max(bcm_thresh.get_output()))
+    gcm_sum_min = min(gcm_sum_min, min(gcm_sum.get_output()))
+    gcm_sum_max = max(gcm_sum_max, max(gcm_sum.get_output()))
+    gcm_thresh_min = min(gcm_thresh_min, min(gcm_thresh.get_output()))
+    gcm_thresh_max = max(gcm_thresh_max, max(gcm_thresh.get_output()))
 
 print stim_min, stim_max
 print bph_min, bph_max
@@ -387,37 +403,42 @@ for i in range(500):
         plt.subplot2grid((11,7), (5,i))
         plt.axis('off')
         plt.title('biphasic input')
-        plt.imshow(np.resize(b.get_sources()[0].output, (10, len(b.output))), 
+        plt.imshow(np.resize(b.get_sources()[0].get_output(), 
+                             (10, len(b.get_output()))), 
                    cmap='Greys', vmin=stim_min, vmax=stim_max)
         plt.subplot2grid((11,7), (6,i))
         plt.axis('off')
         plt.title('biphasic output')
-        plt.imshow(np.resize(b.output, (10, len(b.output))), 
+        plt.imshow(np.resize(b.get_output(), (10, len(b.get_output()))), 
                    cmap='Greys', vmin=bph_min, vmax=bph_max)
 
     plt.subplot2grid((11,7), (7, 0))
     plt.axis('off')
     plt.title('bcm sum')
-    plt.imshow(np.resize(bcm_sum.output, (10, len(bcm_sum.output))), 
+    plt.imshow(np.resize(bcm_sum.get_output(), 
+                         (10, len(bcm_sum.get_output()))), 
                cmap='Greys', vmin=bcm_sum_min, vmax=bcm_sum_max)
 
     plt.subplot2grid((11,7), (8, 0))
     plt.axis('off')
     plt.title('bcm thresh')
-    plt.imshow(np.resize(bcm_thresh.output,(10, len(bcm_thresh.output))),
+    plt.imshow(np.resize(bcm_thresh.get_output(),
+                         (10, len(bcm_thresh.get_output()))),
                cmap='Greys', vmin=bcm_thresh_min, vmax=bcm_thresh_max)
 
 
     plt.subplot2grid((11,7), (9, 0))
     plt.axis('off')
     plt.title('gcm sum')
-    plt.imshow(np.resize(gcm_sum.output, (10, len(gcm_sum.output))), 
+    plt.imshow(np.resize(gcm_sum.get_output(), 
+                         (10, len(gcm_sum.get_output()))), 
                cmap='Greys', vmin=gcm_sum_min, vmax=gcm_sum_max)
 
     plt.subplot2grid((11,7), (10, 0))
     plt.axis('off')
     plt.title('gcm thresh')
-    plt.imshow(np.resize(gcm_thresh.output,(10, len(gcm_thresh.output))),
+    plt.imshow(np.resize(gcm_thresh.get_output(),
+                         (10, len(gcm_thresh.get_output()))),
                cmap='Greys', vmin=gcm_thresh_min, vmax=gcm_thresh_max)
 
 
