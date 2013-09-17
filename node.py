@@ -263,6 +263,34 @@ class Node(object):
     #    pass
 
 
+    def get_output():
+        # assumes output_length....shouldn't?
+        return self.data(-self.output_length:)
+
+    def set_data(self, d):
+        self.data = d
+
+    def append_data(self, d):
+        # DO THIS BETTER!
+        self.data = np.array(list(self.data) + [d])
+
+    def clean_data(self, length):
+        """ Cut data to given length. """
+        # DO THIS BETTER!
+        # self.output = np.array(self.output[-self.output_length:])
+        self.data = np.array(self.data[-length:])
+
+    """ mini todo
+    - sure you want to call 'data'? could use...vector? output?
+    - ok, think you should have difference be that 'data' is internal vector
+    -  'output' agrees with kernel_length
+    - add get_data()
+    - add set_data()
+    - add append_data()
+    - add clean_data() ?? for 'cutting to length'
+    """
+
+
 
     """ DISPLAY FUNCTIONS """
 
