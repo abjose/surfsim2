@@ -13,7 +13,7 @@ Things to add...
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
 __all__ = ['dist', 'rand', 'rand_centered', 'biphasic', 'threshold',
-           'verify_single', 'Grid', 'SinusoidInput']
+           'verify_single', 'Grid', 'SinusoidStim']
 
 def dist(a, b):
     print a
