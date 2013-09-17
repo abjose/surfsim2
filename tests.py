@@ -66,16 +66,12 @@ s.set_focus('$name == "stim_point"')
 # make stim_point read from its associated position in parent's sinusoid matrix
 s.add_rule('init', 
            '$x, $y = $child_grid.get_next()',
-           #'$init_output()'
            '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $sin_matrix[$x][$y]')
 s.add_rule('update',
            #'print "TEMP_DATA: ", $temp_data',
            '$append_data($temp_data)',
-           #'$output = np.append($output, $temp_data)', # TODO: VERY INEFFICIENT
-           #'print $output',
-           #'$clean_output()'
            #'print $data',
            '$clean_data($output_length)')
 
@@ -110,7 +106,6 @@ s.set_focus('$name == "biphasic"')
 s.add_rule('init',
            "$x=rand_centered($parent().x, $bcm_radius)",
            "$y=rand_centered($parent().y, $bcm_radius)",
-           #"$init_output()"
            '$init_data($output_length)')
 
 # Add a biphasic irf with amplitude proportional to distance from parent
@@ -124,8 +119,6 @@ s.add_rule('interact',
 s.add_rule('update',
            #'print $temp_data',
            '$append_data($temp_data)',
-           #'$output = np.append($output, $temp_data)',
-           #'$clean_output()'
            '$clean_data($output_length)') 
 
 # Get connections from nearest input node
@@ -155,10 +148,7 @@ s.add_rule('interact',
            #'print $get_inputs()',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
-           #'$output = $temp_data',  
            '$set_data($temp_data)',
-           #'print $output',
-           #'$clean_output()'
            '$clean_data($output_length)')
 
 # want to make connections to thresh
@@ -180,8 +170,6 @@ s.add_rule('interact',
 s.add_rule('update',
            #'print $temp_data',
            '$set_data($temp_data)',
-           #'$output = $temp_data', 
-           #'$clean_output()'
            '$clean_data($output_length)')
 
 # add rule to connect to GCM's sum node
@@ -210,9 +198,6 @@ s.add_rule('interact',
            '$temp_data = sum($get_inputs())')
 s.add_rule('update',
            '$set_data($temp_data)',
-           #'$output = $temp_data',  
-           #'print $output',
-           #'$clean_output()'
            '$clean_data($output_length)')
 
 # want to make connections to thresh
@@ -233,8 +218,6 @@ s.add_rule('interact',
 s.add_rule('update',
            #'print $temp_data',
            '$set_data($temp_data)',
-           #'$output = $temp_data', 
-           #'$clean_output()'
            '$clean_data($output_length)')
 
 

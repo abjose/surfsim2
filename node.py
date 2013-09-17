@@ -231,39 +231,6 @@ class Node(object):
         assert len(out) > len(self.irf)
         return np.dot(out[-len(self.irf):], self.irf[::-1])
 
-
-    def clean_output(self):
-        # make sure output is a numpy array of the right length
-        # assumes output and kernel_length exist...
-        # NOTE: This should potentially be put into Utils.
-        #print self.name
-        #print len(self.output)
-        #print self.kernel_length
-        #print len(self.irf)
-        #assert len(self.output) >= self.kernel_length
-        # take newest slice
-        #print 'BEFORE: ', self.output
-        #print self.output_length
-        self.output = np.array(self.output[-self.output_length:])
-        #print 'AFTER: ', self.output
-
-
-    def init_output(self, default=0.):
-        """ Given kernel_length, intialize a numpy a numpy array. """
-        # assumes kernel_length and IRF exist already!!
-        # NOTE: This should potentially be put into Utils.
-        #k = 0
-        #if self.irf != None:
-        #    k = self.kernel_length
-        #self.output = np.array([default]*(self.output_length+k-1))
-        self.output = np.array([default]*self.output_length)
-        #print self.output
-
-    #def reset(self, order='pic'):
-    #    pass
-
-
-
     def init_data(self, length):
         """ Given kernel_length, intialize a numpy a numpy array. """
         # assumes kernel_length and IRF exist already!!
