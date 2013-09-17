@@ -112,17 +112,6 @@ class Context(object):
                 #       something has been added to init_list and re-init if so
                 #       (maybe even just re-init addition)
                 self.focus.initialize()
-                
-        #elif dest == 'init':
-        #    self.focus.init_steps.append(E(r))
-        #    self.focus.initialize()
-        #    # TODO: SURE YOU WANT TO DO THIS? could just exec addition instead
-        #    # TODO: perhaps could move this somewhere else - such that rather
-        #    #       than init'ing everywhere, just check in one place if 
-        #    #       something has been added to init_list and re-init if so
-        #    #       (maybe even just re-init addition)
-        #elif dest == 'update':
-        #    self.focus.update_steps.append(E(r))
         else:
             raise Exception("Didn't understand rule destination.")
 
