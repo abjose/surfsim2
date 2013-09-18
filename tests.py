@@ -125,7 +125,8 @@ s.add_rule('init',
 # Add a biphasic irf with amplitude proportional to distance from parent
 s.add_rule('init', 
            '$irf = biphasic($kernel_length, ' + 
-           '1./dist(($parent().x, $parent().y), ($x, $y)))')
+           '1./flip_dist(($parent().x, $parent().y), ($x, $y), 3))')
+# need to make this negative past a certain threshold...
 
 # use irf to update output vector
 s.add_rule('interact',

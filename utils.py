@@ -13,18 +13,25 @@ Things to add...
 
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
-__all__ = ['dist', 'rand', 'rand_centered', 
+__all__ = ['dist', 'flip_dist', 'rand', 'rand_centered', 
            'biphasic', 'exponential', 'threshold',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
            'InvertingSinusoidStim']
 
 def dist(a, b):
-    print a
-    print b
-    print np.linalg.norm(np.array(a) - np.array(b))
+    #print a
+    #print b
+    #print np.linalg.norm(np.array(a) - np.array(b))
     #raw_input()
     return np.linalg.norm(np.array(a) - np.array(b))
+
+def flip_dist(a, b, thresh):
+    # positive if inside thresh, negative if not
+    dist = np.linalg.norm(np.array(a) - np.array(b))
+    if dist > thresh:
+        dist *= -1.
+    return dist
 
 def rand(a=0, b=1):
     # return random float in [a,b)
