@@ -36,6 +36,10 @@ class Context(object):
     TODO: Having list of batches seems inelegant (also inelegant for 
           initializing in node. Take advantage of dict-ness to never keep track
           of existing batches? (...or batch order...?)
+    TODO: Are there potentially multiple connections / serious inefficiency in 
+          connect when, say, trying to connect thresh to feedback? Does
+          it get all threshes and all feedbacks and try to connect all multiple
+          times?
     """
 
 
@@ -168,6 +172,5 @@ class Context(object):
                     # TODO: make this print node attributes?
                     print 'connection made!'
                     s.cg.add_edge(s,t)
-
 
 
