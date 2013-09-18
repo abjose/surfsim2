@@ -13,7 +13,8 @@ Things to add...
 
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
-__all__ = ['dist', 'rand', 'rand_centered', 'biphasic', 'threshold',
+__all__ = ['dist', 'rand', 'rand_centered', 
+           'biphasic', 'exponential', 'threshold',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
            'InvertingSinusoidStim']
@@ -50,6 +51,7 @@ def biphasic(size, A):
 
 
 def exponential(size):
+    # TODO: consider using this to define biphasic
     t = np.arange(size)
     IRF = (-1*(t**2)*np.exp(1*-t))
     IRF /= sum(IRF)

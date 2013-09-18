@@ -256,8 +256,13 @@ class Node(object):
         self.data = np.array(self.data[-length:])
 
     def get_output(self):
-        # assumes output_length....shouldn't?
+        # for now default to end (i.e. newest), but optionally beggining...
+        # would be nicer if just specified where to start, but then
+        # kind of annoying to specify exactly start or end
+        if self.delay: # this is pretty awkward
+            return self.data[:self.output_length]
         return self.data[-self.output_length:]
+        
 
 
 
@@ -266,6 +271,7 @@ class Node(object):
     def __str__(self):
         # should just...print all variables 'owned' by this object?
         # TODO: make this way, way better.
+        #return str(id(self))
         return self.name
         #return pprint.pformat(vars(self))
 

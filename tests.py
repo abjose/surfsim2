@@ -35,11 +35,14 @@ s = Context()
 
 # add stimulus sizes to root node...would be nicer if they went in stimulus node
 s.add_rule('init',
-           "$bcm_radius = 4",
-           "$kernel_length = 10",
-           "$output_length = 50",
-           "$stim_size = 20")
+           '$kernel_length = 10',
+           '$output_length = 50',
+           '$bcm_radius = 4',
+           '$stim_size  = 20',
+           '$time_delay = 5')
 # NOTE: these are one longer than you think - fix?
+
+
 
 # add a container for stimulus and 'focus' on it
 s.add_node('$name = "stimulus"')
@@ -52,15 +55,17 @@ s.add_rule('init',
 
 # also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
-           #'$stim = SinusoidStim($stim_size, $stim_size)', #wat, why two?
+           #'$stim = SinusoidStim($stim_size, $stim_size)', # why two?
            #'$stim = JigglySinusoidStim($stim_size, 10)',
-           '$stim = InvertingSinusoidStim($stim_size, 5)',
-           #'$stim = SquareWaveStim($stim_size, 5)',
+           #'$stim = InvertingSinusoidStim($stim_size, 5)',
+           '$stim = SquareWaveStim($stim_size, 5)',
            '$stim.step()', 
            '$stim_data = $stim.output')
 s.add_rule('update',
            '$stim.step()', 
            '$stim_data = $stim.output')
+
+
 
 # add a point of stimulus and change focus
 s.add_node('$name = "stim_point"')
@@ -83,6 +88,8 @@ s.add_rule('update',
 # TODO: want to change copy_node so that it takes constraints? 
 s.copy_node(N=99)
 
+
+
 # Add another node to root to act as the Ganglion Cell Module
 s.set_focus('parent')
 s.set_focus('parent')
@@ -93,6 +100,8 @@ s.set_focus('$name == "GCM"')
 s.add_rule('init',
            '$child_grid = Grid(x0=5, y0=5, dx=5, dy=5, xl=$stim_size, yl=$stim_size)')
            
+
+
 # Add a node to act as a Bipolar Cell Module
 s.add_node('$name = "BCM"')
 s.set_focus('$name == "BCM"')
@@ -100,6 +109,8 @@ s.set_focus('$name == "BCM"')
 # Grab position from parent
 s.add_rule('init',
            '$x, $y = $child_grid.get_next()')
+
+
 
 # Add a node to act as a biphasic filter
 s.add_node('$name = "biphasic"')
@@ -140,6 +151,8 @@ s.add_rule('outgoing',
 # make some more biphasics
 s.copy_node(N=5)
 
+
+
 # set up sum
 s.set_focus('parent')
 s.add_node('$name = "sum"')
@@ -159,6 +172,8 @@ s.add_rule('outgoing',
            'other.name == "thresh"',
            '$parent() == other.parent()') # want to verify shared parents?
 # Don't have to worry about getting connections from biphasics - already handled
+
+
 
 # set up thresh
 s.set_focus('parent')
@@ -180,6 +195,37 @@ s.add_rule('outgoing',
            'other.name == "sum"',
            'other.parent().name == "GCM"',
            'other.parent() == $parent().parent()')
+
+
+
+# go back to BCM to make exponential feedback between thresh and sum units
+s.set_focus('parent')
+s.add_node('$name = "feedback"')
+s.set_focus('$name == "feedback"')
+s.add_rule('init', '$init_data($output_length)')
+
+# add exponential IRF
+s.add_rule('init',
+           '$irf = exponential($kernel_length)')
+           
+# use irf to update output vector
+s.add_rule('interact',
+           '$temp_data = $dot_input()')
+s.add_rule('update',
+           '$append_data($temp_data)',
+           '$clean_data($output_length)') 
+
+# get input from thresh
+s.add_rule('incoming',
+           'other.name == "thresh"',
+           '$parent() == other.parent()')
+
+# send output to sum
+s.add_rule('outgoing',
+           'other.name == "sum"', 
+           "$parent() == other.parent()") 
+
+
 
 # make some more BCMs
 s.set_focus('parent')
@@ -208,6 +254,8 @@ s.add_rule('outgoing',
            'other.name == "thresh"',
            '$parent() == other.parent()')
 
+
+
 # add thresh to GCM
 s.set_focus('parent')
 s.add_node('$name = "thresh"')
@@ -224,6 +272,7 @@ s.add_rule('update',
            '$clean_data($output_length)')
 
 
+
 # Re-initialize entire circuit
 s.init_simulation()
 
@@ -235,6 +284,14 @@ s.connect(['$name == "stimulus"'],
 
 # connect biphasics to sums
 s.connect(['$name == "biphasic"'], 
+          ['$name == "sum"'])
+
+# connect thresh to feedback ..better way of doing both this and next one?
+s.connect(['$name == "thresh"'], 
+          ['$name == "feedback"'])
+
+# connect feedback to sums
+s.connect(['$name == "feedback"'], 
           ['$name == "sum"'])
 
 # connect sums to thresh
