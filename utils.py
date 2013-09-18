@@ -98,12 +98,10 @@ class Grid(BaseStructure):
 
 
 
-# TODO: Have some kind of stimulus base class?
 
-# SHOULD PROBABLY REDO THIS, COPIED FROM SURFSIM
+
+# TODO: Change name to GratingStim?
 class SinusoidStim(object):
-    #import numpy as np
-
     def __init__(self, side, spacing=0.1, f=5, amp=1, step_size=.5):
         # On a sidexside size grid with each step spacing apart, insert
         # sin with freq f and amplitude amp. On step, increment by step_size.
@@ -124,7 +122,28 @@ class SinusoidStim(object):
         return (self.side, self.side)
 
 class SquareWaveStim(object):
-    pass
+    def __init__(self, dt):
+        self.steps  = 0
+        self.side   = side
+        self.range  = np.arange(0,self.side*spacing, spacing)
+        self.func   = lambda x: amp*np.sin(f*x + step_size*self.steps)
+        self.dt = dt # half period in integer time ticks
+        self.output = None
+        self.step()
+
+    def step(self):
+        sin = self.func(self.range)
+        self.output = np.resize(sin, (self.side, self.side))
+        self.steps += 1
+
+    def get_square(self, t, t0=0):
+        return 0 if ((t-t0)%(2*self.dt)) < self.dt else 1
+
+    def get_dims(self):
+        return (self.side, self.side)
+
+
+
 
 class BarStim(object):
     pass
