@@ -1,5 +1,6 @@
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 """
 Things to add...
@@ -39,7 +40,7 @@ def biphasic(size, A):
     #t = np.arange(0,16,0.1)
     #print A
     #raw_input()
-    t = np.arange(0,size)
+    t = np.arange(size)
     #IRF = A*(2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
     IRF = (2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
     IRF /= sum(IRF)
@@ -47,6 +48,14 @@ def biphasic(size, A):
     # TODO: for debugging could have this plot IRF along with A or something?
     return -1*IRF#[::-1]
 
+
+def exponential(size):
+    t = np.arange(size)
+    IRF = (-1*(t**2)*np.exp(1*-t))
+    IRF /= sum(IRF)
+    #plt.plot(t,IRF[::-1])
+    #plt.show()
+    return IRF
 
 def threshold(array, thresh):
     # threshold passed array...could have more parameters, like what to set 
@@ -166,15 +175,15 @@ class SquareWaveStim(object):
         self.steps += 1
 
     def get_square(self, t, t0=0):
-        return 0 if ((t-t0)%(2*self.dt)) < self.dt else 1
+        return 0. if ((t-t0)%(2*self.dt)) < self.dt else 1.
 
     def get_dims(self):
         return (self.side, self.side)
 
 
-# need jiggle and invert
-# think you should probably jiggle the sinusoid because don't need t to go
-# continuously
-
 class BarStim(object):
     pass
+
+
+if __name__=='__main__':
+    exponential()
