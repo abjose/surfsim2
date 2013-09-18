@@ -243,7 +243,6 @@ class Node(object):
 
     def append_data(self, d):
         # d should be a vector or single value
-        #print 'd', d
         d = d if isinstance(d,list) else [d] #blehh
         l_data = len(self.data)
         l_d    = len(d)
@@ -254,24 +253,11 @@ class Node(object):
     def clean_data(self, length):
         """ Cut data to given length. """
         # DO THIS BETTER!
-        # self.output = np.array(self.output[-self.output_length:])
         self.data = np.array(self.data[-length:])
 
     def get_output(self):
         # assumes output_length....shouldn't?
-        #print self.data[-self.output_length:]
         return self.data[-self.output_length:]
-
-
-    """ mini todo
-    - sure you want to call 'data'? could use...vector? output?
-    - ok, think you should have difference be that 'data' is internal vector
-    -  'output' agrees with kernel_length
-    - add get_data()
-    - add set_data()
-    - add append_data()
-    - add clean_data() ?? for 'cutting to length'
-    """
 
 
 
