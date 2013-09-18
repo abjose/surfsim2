@@ -116,7 +116,8 @@ s.add_rule('init',
 s.add_node('$name = "biphasic"')
 s.set_focus('$name == "biphasic"')
 
-# Position randomly in a circle centered on parent
+# need to change this so positioned on everything...
+# Position randomly in a square centered on parent
 s.add_rule('init',
            "$x=rand_centered($parent().x, $bcm_radius)",
            "$y=rand_centered($parent().y, $bcm_radius)",
