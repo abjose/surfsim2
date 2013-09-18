@@ -13,7 +13,9 @@ Things to add...
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
 __all__ = ['dist', 'rand', 'rand_centered', 'biphasic', 'threshold',
-           'verify_single', 'Grid', 'SinusoidStim']
+           'verify_single', 'Grid', 
+           'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
+           'InvertingSinusoidStim']
 
 def dist(a, b):
     print a
@@ -102,7 +104,7 @@ class Grid(BaseStructure):
 
 # TODO: Change name to GratingStim?
 class SinusoidStim(object):
-    def __init__(self, side, spacing=0.1, f=5, amp=1, step_size=.5):
+    def __init__(self, side, spacing=0.1, f=8, amp=1, step_size=.5):
         # On a sidexside size grid with each step spacing apart, insert
         # sin with freq f and amplitude amp. On step, increment by step_size.
         # TODO: add ability to change angle
@@ -121,19 +123,46 @@ class SinusoidStim(object):
     def get_dims(self):
         return (self.side, self.side)
 
-class SquareWaveStim(object):
-    def __init__(self, dt):
-        self.steps  = 0
-        self.side   = side
-        self.range  = np.arange(0,self.side*spacing, spacing)
-        self.func   = lambda x: amp*np.sin(f*x + step_size*self.steps)
-        self.dt = dt # half period in integer time ticks
-        self.output = None
-        self.step()
+class JigglySinusoidStim(SinusoidStim):
+    def __init__(self, side, max_jiggle):
+        # every time step move up to (max_jiggle) steps in a random direction
+        self.max_jiggle = max_jiggle
+        super(JigglySinusoidStim, self).__init__(side)
 
     def step(self):
         sin = self.func(self.range)
         self.output = np.resize(sin, (self.side, self.side))
+        self.steps += self.max_jiggle * (np.random.rand()*2. - 1.)
+
+class InvertingSinusoidStim(SinusoidStim):
+    def __init__(self, side, invert_steps):
+        # will invert every invert_steps steps
+        self.invert_steps = invert_steps
+        self.sign = 1
+        super(InvertingSinusoidStim, self).__init__(side)
+        
+    def step(self):
+        sin = self.func(self.range)
+        if self.steps % self.invert_steps == 0:
+            self.sign *= -1
+        self.output = np.resize(self.sign*sin, (self.side, self.side))
+        self.steps += 1
+
+
+class SquareWaveStim(object):
+    def __init__(self, side, dt):
+        self.steps    = 0
+        self.side     = side
+        self.dt       = dt # half period in integer time ticks
+        self.curr_vec = [0.]*side
+        self.output   = None
+        # fill array initially
+        for i in range(side):
+            self.step()
+
+    def step(self):
+        self.curr_vec = self.curr_vec[1:] + [self.get_square(self.steps)]
+        self.output = np.resize(self.curr_vec, (self.side, self.side))
         self.steps += 1
 
     def get_square(self, t, t0=0):
@@ -143,7 +172,9 @@ class SquareWaveStim(object):
         return (self.side, self.side)
 
 
-
+# need jiggle and invert
+# think you should probably jiggle the sinusoid because don't need t to go
+# continuously
 
 class BarStim(object):
     pass

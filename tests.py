@@ -50,25 +50,28 @@ s.add_rule('init',
            '$child_grid = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)',
            'print $child_grid.positions')
 
-# also maintain a matrix of sinusoid values for stimulus points to access
+# also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
-           '$sin_input = SinusoidStim($stim_size, $stim_size)',
-           '$sin_input.step()', 
-           '$sin_matrix = $sin_input.output')
+           #'$stim = SinusoidStim($stim_size, $stim_size)', #wat, why two?
+           #'$stim = JigglySinusoidStim($stim_size, 10)',
+           '$stim = InvertingSinusoidStim($stim_size, 5)',
+           #'$stim = SquareWaveStim($stim_size, 5)',
+           '$stim.step()', 
+           '$stim_data = $stim.output')
 s.add_rule('update',
-           '$sin_input.step()', 
-           '$sin_matrix = $sin_input.output')
+           '$stim.step()', 
+           '$stim_data = $stim.output')
 
 # add a point of stimulus and change focus
 s.add_node('$name = "stim_point"')
 s.set_focus('$name == "stim_point"')
 
-# make stim_point read from its associated position in parent's sinusoid matrix
+# make stim_point read from its associated position in parent's stimulus matrix
 s.add_rule('init', 
            '$x, $y = $child_grid.get_next()',
            '$init_data($output_length)')
 s.add_rule('interact',
-           '$temp_data = $sin_matrix[$x][$y]')
+           '$temp_data = $stim_data[$x][$y]')
 s.add_rule('update',
            #'print "TEMP_DATA: ", $temp_data',
            '$append_data($temp_data)',
@@ -309,8 +312,8 @@ for i in range(prime_steps):
     s.step_simulation()
 
 # initialize mins/maxes
-stim_min = np.min(stim.sin_matrix)
-stim_max = np.max(stim.sin_matrix)
+stim_min = np.min(stim.stim_data)
+stim_max = np.max(stim.stim_data)
 bph_min = min([min(b.get_output()) for b in chosen_biphasics])
 bph_max = max([max(b.get_output()) for b in chosen_biphasics])
 bcm_sum_min = min(bcm_sum.get_output())
@@ -332,8 +335,8 @@ range_steps = 150
 for i in range(range_steps):
     print 'ranging:', i+1, '/', range_steps
     s.step_simulation()
-    stim_min = min(stim_min, np.min(stim.sin_matrix))
-    stim_max = max(stim_max, np.max(stim.sin_matrix))
+    stim_min = min(stim_min, np.min(stim.stim_data))
+    stim_max = max(stim_max, np.max(stim.stim_data))
     bph_min = min(bph_min, min([min(b.get_output()) for b in chosen_biphasics]))
     bph_max = max(bph_max, max([max(b.get_output()) for b in chosen_biphasics]))
     bcm_sum_min = min(bcm_sum_min, min(bcm_sum.get_output()))
@@ -362,7 +365,7 @@ for i in range(500):
     plt.ylim([0,19])
     plt.axis('off')
     plt.title('Input and node locations')
-    plt.imshow(stim.sin_matrix, cmap='Greys', vmin=stim_min, vmax=stim_max)
+    plt.imshow(stim.stim_data, cmap='Greys', vmin=stim_min, vmax=stim_max)
     for i in range(len(bcm_xs)):
         plt.plot(bcm_xs[i], bcm_ys[i], marker='x', markersize=20, 
                  color=colors[i], markeredgewidth=2)    
