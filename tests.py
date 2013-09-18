@@ -56,9 +56,9 @@ s.add_rule('init',
 # also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
            #'$stim = SinusoidStim($stim_size, $stim_size)', # why two?
-           #'$stim = JigglySinusoidStim($stim_size, 10)',
+           '$stim = JigglySinusoidStim($stim_size, 10)',
            #'$stim = InvertingSinusoidStim($stim_size, 5)',
-           '$stim = SquareWaveStim($stim_size, 5)',
+           #'$stim = SquareWaveStim($stim_size, 5)',
            '$stim.step()', 
            '$stim_data = $stim.output')
 s.add_rule('update',
@@ -272,6 +272,35 @@ s.add_rule('update',
            #'print $temp_data',
            '$set_data($temp_data)',
            '$clean_data($output_length)')
+
+
+
+# add feedback to GCM
+s.set_focus('parent')
+s.add_node('$name = "feedback"')
+s.set_focus('$name == "feedback"')
+s.add_rule('init', '$init_data($output_length)')
+
+# add exponential IRF
+s.add_rule('init',
+           '$irf = exponential($kernel_length)')
+           
+# use irf to update output vector
+s.add_rule('interact',
+           '$temp_data = $dot_input()')
+s.add_rule('update',
+           '$append_data($temp_data)',
+           '$clean_data($output_length)') 
+
+# get input from thresh
+s.add_rule('incoming',
+           'other.name == "thresh"',
+           '$parent() == other.parent()')
+
+# send output to sum
+s.add_rule('outgoing',
+           'other.name == "sum"', 
+           "$parent() == other.parent()") 
 
 
 
