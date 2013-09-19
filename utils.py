@@ -17,7 +17,7 @@ __all__ = ['dist', 'flip_dist', 'rand', 'rand_centered',
            'biphasic', 'exponential', 'threshold',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
-           'InvertingSinusoidStim']
+           'InvertingSinusoidStim', 'BarStim']
 
 def dist(a, b):
     #print a
@@ -192,7 +192,18 @@ class SquareWaveStim(object):
 
 
 class BarStim(object):
-    pass
+    def __init__(self, side, bar):
+        self.steps  = 0
+        self.side   = side
+        self.bar    = bar
+        self.output = np.array([1.]*bar + [0.]*(side-bar))
+        self.output = np.resize(self.output, (self.side, self.side))
+            
+    def step(self):
+        self.output = np.roll(self.output, 1, 1)
+
+    def get_dims(self):
+        return (self.side, self.side)
 
 
 if __name__=='__main__':

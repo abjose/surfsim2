@@ -58,9 +58,10 @@ s.add_rule('init',
 # also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
            #'$stim = SinusoidStim($stim_size, $stim_size)', # why two?
-           '$stim = JigglySinusoidStim($stim_size, 10)',
+           #'$stim = JigglySinusoidStim($stim_size, 10)',
            #'$stim = InvertingSinusoidStim($stim_size, 5)',
            #'$stim = SquareWaveStim($stim_size, 5)',
+           '$stim = BarStim($stim_size, 3)',
            '$stim.step()', 
            '$stim_data = $stim.output')
 s.add_rule('update',
