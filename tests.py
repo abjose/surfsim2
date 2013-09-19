@@ -27,7 +27,6 @@ TODO: Would be nice to add something that catches exceptions when ExecSteps
 TODO: Have warnings when variables are made without being prepended by $ or 
       other?
 TODO: Why is nothing shown for initialization during copies?
-TODO: Appending to numpy arrays is bad, do some other way
 """
 
 # create context
@@ -37,7 +36,7 @@ s = Context()
 s.add_rule('init',
            '$kernel_length = 10',
            '$output_length = 50',
-           '$bcm_radius = 4',
+           '$bcm_radius = 4.',
            '$stim_size  = 20',
            '$max_delay  = 3')
            # add all grids here? just name differently...
@@ -138,6 +137,7 @@ s.set_focus('$name == "GCM"')
 
 # Add a grid-positioning rule for BCMs (grid same size as stimulus)
 s.add_rule('init',
+           '$x, $y = $stim_size/2., $stim_size/2.',
            '$child_grid = Grid(x0=5, y0=5, dx=5, dy=5, xl=$stim_size, yl=$stim_size)')
            
 
@@ -160,22 +160,33 @@ s.add_rule('init', '$init_data($output_length)')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
-           # oh my god ugly
+           # oh my god dis mad ugly yo
+           # TODO: make some of these utils or something so less ugly?
            '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
            '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
-           '$dists=np.array([flip_dist((p.x,p.y),($x,$y), 3) for p in $bphs])',
+           '$delays=np.array([int((dist((p.x, p.y), ($x, $y))/$bcm_radius)*$max_delay) for p in $bphs])',
+           '$wghts=np.array([flip_dist((p.x,p.y),($x,$y), 3) for p in $bphs])',
            '$bphs_out   = np.array([p.get_output() for p in $bphs])',
+           '$bphs_out = np.array([np.array([0.]*$delays[i] + list($bphs_out[i]))[$delays[i]:] for i in range(len($bphs_out))])', # omg such ew
            '$others_out = np.array([p.get_output() for p in $others])',
            #'print "bphs_outs:", $bphs_out',
            #'print "others:", $others[0].get_output()',
-           #'print "dists:", $dists',
-           #'print "output:", ($dists * $bphs_out.T).T',
-           '$temp_data = sum(($dists * $bphs_out.T).T  + $others_out)') # ugly
-# TODO: only sum most recent things...?
+           #'print "delays:", $delays',
+           #'print "weights:", $wghts',
+           #'print "output:", ($wghts * $bphs_out.T).T',
+           '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
+# TODO: don't need to sum entire vectors every time...
 s.add_rule('update',
            '$set_data($temp_data)',
-           '$clean_data($output_length)',
-           'print $get_output()')
+           '$clean_data($output_length)')
+           #'print $get_output()')
+
+
+"""
+to do time delay just pad the front with desired number of 0s and cut off back
+don't have to worry about cut off stuff because it would be cut off anyway
+"""
+
 
 # want to make connections to thresh
 s.add_rule('outgoing',
@@ -250,6 +261,31 @@ s.set_focus('parent')
 s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_data($output_length)')
+
+
+
+# On every step, sum inputs, push sum to end of output vector
+s.add_rule('interact',
+           # oh my god dis mad ugly yo
+           # TODO: make some of these utils or something so less ugly?
+           '$bphs   = [p for p in $get_predecessors() if p.name == "thresh"]',
+           '$others = [p for p in $get_predecessors() if p.name != "thresh"]',
+           '$wghts=np.array([flip_dist((p.x,p.y),($x,$y), 7) for p in $bphs])',
+           '$bphs_out   = np.array([p.get_output() for p in $bphs])',
+           '$others_out = np.array([p.get_output() for p in $others])',
+           #'print "bphs_outs:", $bphs_out',
+           #'print "others:", $others[0].get_output()',
+           #'print "delays:", $delays',
+           #'print "weights:", $wghts',
+           #'print "output:", ($wghts * $bphs_out.T).T',
+           '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
+# TODO: don't need to sum entire vectors every time...
+s.add_rule('update',
+           '$set_data($temp_data)',
+           '$clean_data($output_length)')
+           #'print $get_output()')
+
+
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
