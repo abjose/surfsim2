@@ -57,15 +57,15 @@ def biphasic(size, A):
     # TODO: for debugging could have this plot IRF along with A or something?
     return -1*IRF#[::-1]
 
-
 def exponential(size):
     # TODO: consider using this to define biphasic
     t = np.arange(size)
-    IRF = (-1*(t**2)*np.exp(1*-t))
+    IRF = (1*(t**2)*np.exp(1*-t))
     IRF /= sum(IRF)
+    IRF *= -1.
     #plt.plot(t,IRF[::-1])
     #plt.show()
-    return IRF
+    return IRF[::-1]
 
 def threshold(array, thresh):
     # threshold passed array...could have more parameters, like what to set 
@@ -196,4 +196,4 @@ class BarStim(object):
 
 
 if __name__=='__main__':
-    exponential()
+    print exponential(10)
