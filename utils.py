@@ -17,7 +17,7 @@ __all__ = ['dist', 'flip_dist', 'rand', 'rand_centered',
            'biphasic', 'exponential', 'threshold',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
-           'InvertingSinusoidStim', 'BarStim']
+           'InvertingSinusoidStim', 'BarStim', 'FullFieldStim']
 
 def dist(a, b):
     #print a
@@ -30,9 +30,10 @@ def flip_dist(a, b, thresh):
     # positive if inside thresh, negative if not
     # note...not actual distance...
     dist = np.linalg.norm(np.array(a) - np.array(b))
-    if dist > thresh:
-        return -1 + 1./(1.+dist)
-    return 1./(1.+dist)
+    #if dist > thresh:
+    #    return -1 + 1./(1.+dist)
+    #return 1./(1.+dist)
+    return 1
 
 def rand(a=0, b=1):
     # return random float in [a,b)
@@ -54,8 +55,13 @@ def biphasic(size, A):
     IRF = (2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
     IRF /= sum(IRF)
     IRF *= A
+    IRF *= -1
+    IRF = IRF[::-1]
+    #plt.plot(t,IRF)
+    #plt.show()
     # TODO: for debugging could have this plot IRF along with A or something?
-    return -1*IRF#[::-1]
+    # consider flipping this to see if that fixed flipping problem?
+    return IRF
 
 def exponential(size):
     # TODO: consider using this to define biphasic
@@ -65,7 +71,7 @@ def exponential(size):
     IRF *= -1.
     #plt.plot(t,IRF[::-1])
     #plt.show()
-    return IRF[::-1]
+    return IRF[::-1] * 0 # TURNED OFF
 
 def threshold(array, thresh):
     # threshold passed array...could have more parameters, like what to set 
@@ -123,7 +129,7 @@ class Grid(BaseStructure):
 
 # TODO: Change name to GratingStim?
 class SinusoidStim(object):
-    def __init__(self, side, spacing=0.1, f=8, amp=1, step_size=.5):
+    def __init__(self, side, spacing=0.1, f=5, amp=1, step_size=.1):
         # On a sidexside size grid with each step spacing apart, insert
         # sin with freq f and amplitude amp. On step, increment by step_size.
         # TODO: add ability to change angle
@@ -173,7 +179,7 @@ class SquareWaveStim(object):
         self.steps    = 0
         self.side     = side
         self.dt       = dt # half period in integer time ticks
-        self.curr_vec = [0.]*side
+        self.curr_vec = [-1.]*side
         self.output   = None
         # fill array initially
         for i in range(side):
@@ -196,11 +202,28 @@ class BarStim(object):
         self.steps  = 0
         self.side   = side
         self.bar    = bar
-        self.output = np.array([1.]*bar + [0.]*(side-bar))
+        self.output = np.array([1.]*bar + [-1.]*(side-bar)) # (0,1) vs (-1,1)?
         self.output = np.resize(self.output, (self.side, self.side))
             
     def step(self):
         self.output = np.roll(self.output, 1, 1)
+
+    def get_dims(self):
+        return (self.side, self.side)
+
+
+class FullFieldStim(object):
+    def __init__(self, side, f):
+        self.steps  = 0
+        self.freq   = f
+        self.side   = side
+        self.output = np.array([1.]*side)
+        self.output = np.resize(self.output, (self.side, self.side))
+            
+    def step(self):
+        if self.steps % self.freq == 0:
+            self.output = -1*self.output
+        self.steps += 1
 
     def get_dims(self):
         return (self.side, self.side)
