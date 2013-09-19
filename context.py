@@ -165,12 +165,12 @@ class Context(object):
                 # TODO: Instead of disjunction, could do conjunction unless
                 # either has no rules specified, in which case disjunction? So 
                 # basically just connect if all existing rules are satisfied...
-                print 'comparing nodes'
-                print s.name
-                print t.name
+                #print 'comparing nodes'
+                #print s.name
+                #print t.name
                 if s_c or t_c:
                     # TODO: make this print node attributes?
-                    print 'connection made!'
+                    #print 'connection made!'
                     s.cg.add_edge(s,t)
 
 
