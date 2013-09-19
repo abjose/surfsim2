@@ -28,10 +28,11 @@ def dist(a, b):
 
 def flip_dist(a, b, thresh):
     # positive if inside thresh, negative if not
+    # note...not actual distance...
     dist = np.linalg.norm(np.array(a) - np.array(b))
     if dist > thresh:
-        dist *= -1.
-    return dist
+        return -1 + 1./(1.+dist)
+    return 1./(1.+dist)
 
 def rand(a=0, b=1):
     # return random float in [a,b)
