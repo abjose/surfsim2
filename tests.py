@@ -39,7 +39,8 @@ s.add_rule('init',
            '$output_length = 50',
            '$bcm_radius = 4',
            '$stim_size  = 20',
-           '$time_delay = 5')
+           '$max_delay  = 3')
+           # add all grids here? just name differently...
 # NOTE: these are one longer than you think - fix?
 
 
@@ -50,8 +51,10 @@ s.set_focus('$name == "stimulus"')
 
 # add a distribution rule for stimulus points
 s.add_rule('init',
-           '$child_grid = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)',
-           'print $child_grid.positions')
+           '$stim_grid = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)',
+           # should just reset stim_grid instead of copying?
+           '$bph_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)')
+           #'print $stim_grid.positions')
 
 # also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
@@ -73,19 +76,56 @@ s.set_focus('$name == "stim_point"')
 
 # make stim_point read from its associated position in parent's stimulus matrix
 s.add_rule('init', 
-           '$x, $y = $child_grid.get_next()',
+           '$x, $y = $stim_grid.get_next()',
            '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $stim_data[$x][$y]')
 s.add_rule('update',
            #'print "TEMP_DATA: ", $temp_data',
            '$append_data($temp_data)',
-           #'print $data',
            '$clean_data($output_length)')
 
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
 # TODO: want to change copy_node so that it takes constraints? 
+s.copy_node(N=99)
+
+
+
+# now add grid of biphasics for every input
+s.set_focus('parent')
+# note that this is in the "stimulus" layer...
+s.add_node('$name = "biphasic"')
+s.set_focus('$name == "biphasic"')
+
+# make biphasic read from associated stim_point
+s.add_rule('init', 
+           '$x, $y = $bph_grid.get_next()',
+           '$init_data($output_length)')
+# Add a biphasic irf...unity amplitude for now
+s.add_rule('init', 
+           '$irf = biphasic($kernel_length, 1)')
+
+# use irf to update output vector
+s.add_rule('interact',
+           '$temp_data = $dot_input()')
+s.add_rule('update',
+           '$append_data($temp_data)',
+           '$clean_data($output_length)') 
+
+# make biphasic read from associated stim_point
+s.add_rule('incoming',
+           "other.name == 'stim_point'",
+           "(other.x, other.y) == ($x, $y)") # if not connecting consider dist
+           #"len($get_predecessors()) < 1") # ugly-ish
+
+# and connect to BCM sum if closer than bcm_radius. Should do in sum instead?
+s.add_rule('outgoing',
+           'other.name == "sum"',
+           'other.parent().name == "BCM"',
+           'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
+
+# make some copies
 s.copy_node(N=99)
 
 
@@ -112,62 +152,30 @@ s.add_rule('init',
 
 
 
-# Add a node to act as a biphasic filter
-s.add_node('$name = "biphasic"')
-s.set_focus('$name == "biphasic"')
-
-# need to change this so positioned on everything...
-# Position randomly in a square centered on parent
-s.add_rule('init',
-           "$x=rand_centered($parent().x, $bcm_radius)",
-           "$y=rand_centered($parent().y, $bcm_radius)",
-           '$init_data($output_length)')
-
-# Add a biphasic irf with amplitude proportional to distance from parent
-s.add_rule('init', 
-           '$irf = biphasic($kernel_length, ' + 
-           '1./flip_dist(($parent().x, $parent().y), ($x, $y), 3))')
-# need to make this negative past a certain threshold...
-
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           #'print $temp_data',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# Get connections from nearest input node
-# could put something in parent to help?
-# for now just connect if close, limit to one connection
-s.add_rule('incoming',
-           "other.name == 'stim_point'",
-           "dist((other.x, other.y), ($x, $y)) < 10",
-           "len($get_predecessors()) < 1") # ugly-ish
-
-# want to make connection to BCM's sum node
-s.add_rule('outgoing',
-           'other.name == "sum"', 
-           "$parent() == other.parent()") 
-
-# make some more biphasics
-s.copy_node(N=5)
-
-
-
 # set up sum
-s.set_focus('parent')
+# remember to handle inputs differently...
 s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_data($output_length)')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
-           #'print $get_inputs()',
-           '$temp_data = sum($get_inputs())')
+           # oh my god ugly
+           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
+           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
+           '$dists=np.array([flip_dist((p.x,p.y),($x,$y), 3) for p in $bphs])',
+           '$bphs_out   = np.array([p.get_output() for p in $bphs])',
+           '$others_out = np.array([p.get_output() for p in $others])',
+           #'print "bphs_outs:", $bphs_out',
+           #'print "others:", $others[0].get_output()',
+           #'print "dists:", $dists',
+           #'print "output:", ($dists * $bphs_out.T).T',
+           '$temp_data = sum(($dists * $bphs_out.T).T  + $others_out)') # ugly
+# TODO: only sum most recent things...?
 s.add_rule('update',
            '$set_data($temp_data)',
-           '$clean_data($output_length)')
+           '$clean_data($output_length)',
+           'print $get_output()')
 
 # want to make connections to thresh
 s.add_rule('outgoing',
@@ -310,8 +318,10 @@ s.init_simulation()
 # make connections between necessary populations
 
 # connect stim_points to biphasics
-s.connect(['$name == "stimulus"'], 
-          ['$name == "BCM"']) 
+#s.connect(['$name == "stimulus"'], 
+#          ['$name == "BCM"']) 
+s.connect(['$name == "stim_point"'], 
+          ['$name == "biphasic"']) 
 
 # connect biphasics to sums
 s.connect(['$name == "biphasic"'], 
@@ -338,8 +348,15 @@ s.connect(['$name == "thresh"'],
 #s.focus.show_cg()
 
 
+# step the network a few times to 'prime' things
+prime_steps = 150
+for i in range(prime_steps):
+    print 'priming:', i+1, '/', prime_steps
+    s.step_simulation()
+    raw_input()
 
 
+"""
 
 
 # prepare plotting stuff
@@ -436,8 +453,16 @@ for i in range(range_steps):
     gcm_thresh_min = min(gcm_thresh_min, min(gcm_thresh.get_output()))
     gcm_thresh_max = max(gcm_thresh_max, max(gcm_thresh.get_output()))
 
-print stim_min, stim_max
-print bph_min, bph_max
+
+
+#print stim_min, stim_max
+#print bph_min, bph_max
+#print bcm_sum_min, bcm_sum_max
+#print bcm_thresh_min, bcm_thresh_max
+#print gcm_sum_min, gcm_sum_max
+#print gcm_thresh_min, gcm_thresh_max
+#raw_input()
+
 
 plt.ion()
 #plt.axis('off')
@@ -522,3 +547,4 @@ for i in range(500):
 
 plt.ioff()
 
+"""

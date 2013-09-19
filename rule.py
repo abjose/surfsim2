@@ -1,6 +1,7 @@
 
 # import utils
 from utils import *
+import numpy as np
 
 # not entirely sure this is necessary
 # could move all 'global search' stuff here
