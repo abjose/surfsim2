@@ -36,7 +36,7 @@ s = Context()
 s.add_rule('init',
            '$kernel_length = 10',
            '$output_length = 50',
-           '$bcm_radius = 4.',
+           '$bcm_radius = 8.',
            '$stim_size  = 20',
            '$max_delay  = 3')
            # add all grids here? just name differently...
@@ -165,10 +165,11 @@ s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_data($output_length)')
 
+"""
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('interact',
-           # oh my god dis mad ugly yo
-           # TODO: make some of these utils or something so less ugly?
+           # could these two be moved to init batch? actually
+           # could probably do all of this calculation on init...
            '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
            '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
            #'$delays=np.array([int((dist((p.x, p.y), ($x, $y))/$bcm_radius)*$max_delay) for p in $bphs])',
@@ -183,17 +184,27 @@ s.add_rule('interact',
            #'print "output:", ($wghts * $bphs_out.T).T',
            '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
 # TODO: don't need to sum entire vectors every time...
+"""
+
+# "cleaned up" version of dist-based weight
+# move this stuff to init
+s.add_rule('init',
+           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
+           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
+           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
+           '$weights= [DoG_weight(d, $bcm_radius) for d in $dist]')
+
+# stuff to keep in 'interact'
+s.add_rule('interact',
+           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
+           '$others_out = [p.get_output() for p in $others]',
+           # not sure this works...
+           '$temp_data  = sum($bphs_out + $others_out)')
+
 s.add_rule('update',
            '$set_data($temp_data)',
            '$clean_data($output_length)')
            #'print $get_output()')
-
-
-"""
-to do time delay just pad the front with desired number of 0s and cut off back
-don't have to worry about cut off stuff because it would be cut off anyway
-"""
-
 
 # want to make connections to thresh
 s.add_rule('outgoing',
