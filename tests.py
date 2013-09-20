@@ -50,18 +50,20 @@ s.set_focus('$name == "stimulus"')
 
 # add a distribution rule for stimulus points
 s.add_rule('init',
-           '$stim_grid = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)',
+           # dx and dy were initially 2 for both of these, changing temporarily
+           '$stim_grid = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            # should just reset stim_grid instead of copying?
-           '$bph_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=2, dy=2)')
+           '$bph_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)')
            #'print $stim_grid.positions')
 
 # also maintain a matrix of stimulus values for stimulus points to access
 s.add_rule('init',
            #'$stim = SinusoidStim($stim_size, $stim_size)', # why two?
            #'$stim = JigglySinusoidStim($stim_size, 10)',
-           #'$stim = InvertingSinusoidStim($stim_size, 5)',
-           #'$stim = SquareWaveStim($stim_size, 5)',
-           '$stim = BarStim($stim_size, 3)',
+           #'$stim = InvertingSinusoidStim($stim_size, 20)',
+           #'$stim = SquareWaveStim($stim_size, 8)',
+           #'$stim = BarStim($stim_size, 10)',
+           '$stim = FullFieldStim($stim_size, 20)',
            '$stim.step()', 
            '$stim_data = $stim.output')
 s.add_rule('update',
@@ -77,6 +79,7 @@ s.set_focus('$name == "stim_point"')
 # make stim_point read from its associated position in parent's stimulus matrix
 s.add_rule('init', 
            '$x, $y = $stim_grid.get_next()',
+           'print $x, $y',
            '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $stim_data[$x][$y]')
@@ -88,7 +91,9 @@ s.add_rule('update',
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
 # TODO: want to change copy_node so that it takes constraints? 
-s.copy_node(N=99)
+#s.copy_node(N=99) # for dx,dy = 2,2
+s.copy_node(N=399)
+#raw_input()
 
 
 
@@ -126,7 +131,8 @@ s.add_rule('outgoing',
            'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
 
 # make some copies
-s.copy_node(N=99)
+#s.copy_node(N=99) # for 2 spacing
+s.copy_node(N=399)
 
 
 
@@ -165,10 +171,10 @@ s.add_rule('interact',
            # TODO: make some of these utils or something so less ugly?
            '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
            '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
-           '$delays=np.array([int((dist((p.x, p.y), ($x, $y))/$bcm_radius)*$max_delay) for p in $bphs])',
+           #'$delays=np.array([int((dist((p.x, p.y), ($x, $y))/$bcm_radius)*$max_delay) for p in $bphs])',
            '$wghts=np.array([flip_dist((p.x,p.y),($x,$y), 3) for p in $bphs])',
            '$bphs_out   = np.array([p.get_output() for p in $bphs])',
-           '$bphs_out = np.array([np.array([0.]*$delays[i] + list($bphs_out[i]))[$delays[i]:] for i in range(len($bphs_out))])', # omg such ew
+           #'$bphs_out = np.array([np.array([0.]*$delays[i] + list($bphs_out[i]))[$delays[i]:] for i in range(len($bphs_out))])', # omg such ew
            '$others_out = np.array([p.get_output() for p in $others])',
            #'print "bphs_outs:", $bphs_out',
            #'print "others:", $others[0].get_output()',
@@ -443,7 +449,7 @@ for i in range(500):
     plt.ylim([0,19])
     plt.axis('off')
     plt.title('Input and node locations')
-    plt.imshow(stim.stim_data, cmap='Greys')
+    plt.imshow(stim.stim_data, cmap='Greys', vmin=-1, vmax=1)
     for i in range(len(bcm_xs)):
         plt.plot(bcm_xs[i], bcm_ys[i], marker='x', markersize=20, 
                  color=colors[i], markeredgewidth=2)    
