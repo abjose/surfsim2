@@ -1,5 +1,6 @@
 
 import numpy as np
+import scipy.signal
 import matplotlib.pyplot as plt
 
 """
@@ -72,6 +73,24 @@ def exponential(size):
     #plt.plot(t,IRF[::-1])
     #plt.show()
     return IRF[::-1] * 0 # TURNED OFF
+
+def gaussian(size, std):
+    g = scipy.signal.gaussian(size, std)
+    #plt.plot(g)
+    #plt.show()
+    return g
+
+def DoG(size, s1, s2):
+    g = (gaussian(size*2, s1) - (.25*gaussian(size*2, s2)))[size:]
+    #plt.plot(g)
+    #plt.show()
+    # should normalize?
+    return g
+
+def DoG_weight(dist, max_dist, size, s1, s2):
+    # need max_dist?
+    ind = (float(dist)/(max_dist+1)) * size
+    return DoG(size, s1, s2)[ind]
 
 def threshold(array, thresh):
     # threshold passed array...could have more parameters, like what to set 
@@ -230,4 +249,7 @@ class FullFieldStim(object):
 
 
 if __name__=='__main__':
-    print exponential(10)
+    #plt.plot(-0.25*gaussian(20,10))
+    #plt.show()
+    #print DoG(29, 2, 7)
+    print DoG_weight(1,20,50,2.5,15)
