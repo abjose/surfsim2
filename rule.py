@@ -76,7 +76,11 @@ class ExecStep(object):
         if self.cmd == None:
             self.init_cmd()
         print '\t', self.i
-        exec(self.cmd)
+
+        try: exec(self.cmd)
+        except Exception, e:
+            raise Exception("Can't exec " + str(self) + ' because ' + str(e))
+        #exec(self.cmd)
 
 #class ConstraintList(object)
 # could have as disjunction of constraints...and have nice way of saving or 

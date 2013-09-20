@@ -201,7 +201,11 @@ class Node(object):
             #step.execute(self)
             if debug: print '\t', step
             step.init_cmd()
-            exec(step.cmd) # uggggly
+            try: exec(step.cmd)
+            except Exception, e:
+                raise Exception("Can't exec " + str(step) + 
+                                ' because ' + str(e))
+            #exec(step.cmd) # uggggly
 
 
     """ INPUT/OUTPUT FUNCTIONS """
@@ -229,6 +233,7 @@ class Node(object):
         assert len(input_nodes) == 1
         out = input_nodes[0].get_output()
         assert len(out) > len(self.irf)
+        # need to reverse irf because convolve does that automatically, right?
         return np.dot(out[-len(self.irf):], self.irf[::-1])
 
     def init_data(self, length):
