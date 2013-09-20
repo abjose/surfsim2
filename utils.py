@@ -81,13 +81,13 @@ def gaussian(size, std):
     return g
 
 def DoG(size, s1, s2):
-    g = (gaussian(size*2, s1) - (.25*gaussian(size*2, s2)))[size:]
-    #plt.plot(g)
-    #plt.show()
+    g = (gaussian(size*2, s1) - (.5*gaussian(size*2, s2)))[size:]
+    plt.plot(g)
+    plt.show()
     # should normalize?
     return g
 
-def DoG_weight(dist, max_dist, size, s1, s2):
+def DoG_weight(dist, max_dist, size=100, s1=20, s2=40):
     # need max_dist?
     ind = (float(dist)/(max_dist+1)) * size
     return DoG(size, s1, s2)[ind]
@@ -100,6 +100,11 @@ def threshold(array, thresh):
     a = np.array(array)
     a[a < thresh] = 0
     return a
+
+def delay(vec, t):
+    """ Just add t 0s to the beginning of vec so most recent data is from
+        a few steps ago. """
+    return np.array([0.]*t + vec[:-t])
 
 def verify_single(array):
     # throw an exception if input array has too many lists, otherwise return...
@@ -252,4 +257,5 @@ if __name__=='__main__':
     #plt.plot(-0.25*gaussian(20,10))
     #plt.show()
     #print DoG(29, 2, 7)
-    print DoG_weight(1,20,50,2.5,15)
+    #print DoG_weight(1,20,50,2.5,15)
+    print DoG_weight(1,5)
