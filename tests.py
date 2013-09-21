@@ -167,43 +167,18 @@ s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_data($output_length)')
 
-"""
-# On every step, sum inputs, push sum to end of output vector
-s.add_rule('interact',
-           # could these two be moved to init batch? actually
-           # could probably do all of this calculation on init...
-           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
-           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
-           #'$delays=np.array([int((dist((p.x, p.y), ($x, $y))/$bcm_radius)*$max_delay) for p in $bphs])',
-           '$wghts=np.array([flip_dist((p.x,p.y),($x,$y), 3) for p in $bphs])',
-           '$bphs_out   = np.array([p.get_output() for p in $bphs])',
-           #'$bphs_out = np.array([np.array([0.]*$delays[i] + list($bphs_out[i]))[$delays[i]:] for i in range(len($bphs_out))])', # omg such ew
-           '$others_out = np.array([p.get_output() for p in $others])',
-           #'print "bphs_outs:", $bphs_out',
-           #'print "others:", $others[0].get_output()',
-           #'print "delays:", $delays',
-           #'print "weights:", $wghts',
-           #'print "output:", ($wghts * $bphs_out.T).T',
-           '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
-# TODO: don't need to sum entire vectors every time...
-"""
-# "cleaned up" version of dist-based weight
-# move this stuff to init
+# also initialize some stuff for use during update
 s.add_rule('init',
            '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
            '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
            '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
            '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]')
 
-# stuff to keep in 'interact'
+# get and weight inputs
+# TODO: don't need to sum entire vectors every time...
 s.add_rule('interact',
-#           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]'
-#           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]'
-#           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
-#           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]',
            '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
            '$others_out = [p.get_output() for p in $others]',
-           # not sure this works...
            '$temp_data  = sum($bphs_out + $others_out)')
 
 s.add_rule('update',
@@ -285,35 +260,22 @@ s.add_node('$name = "sum"')
 s.set_focus('$name == "sum"')
 s.add_rule('init', '$init_data($output_length)')
 
-
-
-# On every step, sum inputs, push sum to end of output vector
-s.add_rule('interact',
-           # oh my god dis mad ugly yo
-           # TODO: make some of these utils or something so less ugly?
+# also initialize some stuff for use during update
+s.add_rule('init',
            '$bphs   = [p for p in $get_predecessors() if p.name == "thresh"]',
            '$others = [p for p in $get_predecessors() if p.name != "thresh"]',
-           '$wghts=np.array([flip_dist((p.x,p.y),($x,$y), 7) for p in $bphs])',
-           '$bphs_out   = np.array([p.get_output() for p in $bphs])',
-           '$others_out = np.array([p.get_output() for p in $others])',
-           #'print "bphs_outs:", $bphs_out',
-           #'print "others:", $others[0].get_output()',
-           #'print "delays:", $delays',
-           #'print "weights:", $wghts',
-           #'print "output:", ($wghts * $bphs_out.T).T',
-           '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
+           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
+#           # what max_distance to use?
+           '$weights = [DoG_weight(d, 20) for d in $dists]')
+
+# get and weight inputs
 # TODO: don't need to sum entire vectors every time...
-s.add_rule('update',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-           #'print $get_output()')
-
-
+s.add_rule('interact',
+           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
+           '$others_out = [p.get_output() for p in $others]',
+           '$temp_data  = sum($bphs_out + $others_out)')
 
 # On every step, sum inputs, push sum to end of output vector
-s.add_rule('interact',
-           #'print $get_inputs()',
-           '$temp_data = sum($get_inputs())')
 s.add_rule('update',
            '$set_data($temp_data)',
            '$clean_data($output_length)')
