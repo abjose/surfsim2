@@ -16,6 +16,7 @@ Things to add...
 # no...also, this technically isn't necessary.
 __all__ = ['dist', 'flip_dist', 'rand', 'rand_centered', 
            'biphasic', 'exponential', 'threshold',
+           'DoG_weight',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
            'InvertingSinusoidStim', 'BarStim', 'FullFieldStim']
@@ -82,8 +83,8 @@ def gaussian(size, std):
 
 def DoG(size, s1, s2):
     g = (gaussian(size*2, s1) - (.5*gaussian(size*2, s2)))[size:]
-    plt.plot(g)
-    plt.show()
+    #plt.plot(g)
+    #plt.show()
     # should normalize?
     return g
 

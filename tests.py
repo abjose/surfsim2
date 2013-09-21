@@ -27,6 +27,8 @@ TODO: Would be nice to add something that catches exceptions when ExecSteps
 TODO: Have warnings when variables are made without being prepended by $ or 
       other?
 TODO: Why is nothing shown for initialization during copies?
+TODO: Could....add a second init step so there's one before connections
+      and one after?
 """
 
 # create context
@@ -36,7 +38,7 @@ s = Context()
 s.add_rule('init',
            '$kernel_length = 10',
            '$output_length = 50',
-           '$bcm_radius = 8.',
+           '$bcm_radius = 4.',
            '$stim_size  = 20',
            '$max_delay  = 3')
            # add all grids here? just name differently...
@@ -185,17 +187,20 @@ s.add_rule('interact',
            '$temp_data = sum(($wghts * $bphs_out.T).T  + $others_out)')
 # TODO: don't need to sum entire vectors every time...
 """
-
 # "cleaned up" version of dist-based weight
 # move this stuff to init
 s.add_rule('init',
            '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
            '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
            '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
-           '$weights= [DoG_weight(d, $bcm_radius) for d in $dist]')
+           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]')
 
 # stuff to keep in 'interact'
 s.add_rule('interact',
+#           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]'
+#           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]'
+#           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
+#           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]',
            '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
            '$others_out = [p.get_output() for p in $others]',
            # not sure this works...
@@ -367,6 +372,7 @@ s.add_rule('outgoing',
 
 
 # Re-initialize entire circuit
+# really need to do before and after connection?...
 s.init_simulation()
 
 # make connections between necessary populations
@@ -398,6 +404,8 @@ s.connect(['$name == "sum"'],
 s.connect(['$name == "thresh"'], 
           ['$name == "sum"'])
 
+# Re-initialize entire circuit
+s.init_simulation()
 
 #s.focus.show_cg()
 
