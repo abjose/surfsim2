@@ -262,18 +262,18 @@ s.add_rule('init', '$init_data($output_length)')
 
 # also initialize some stuff for use during update
 s.add_rule('init',
-           '$bphs   = [p for p in $get_predecessors() if p.name == "thresh"]',
+           '$ths    = [p for p in $get_predecessors() if p.name == "thresh"]',
            '$others = [p for p in $get_predecessors() if p.name != "thresh"]',
-           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
-#           # what max_distance to use?
+           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $ths]',
+           # what max_distance to use?
            '$weights = [DoG_weight(d, 20) for d in $dists]')
 
 # get and weight inputs
 # TODO: don't need to sum entire vectors every time...
 s.add_rule('interact',
-           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
+           '$ths_out    = [w*p.get_output() for p,w in zip($ths, $weights)]',
            '$others_out = [p.get_output() for p in $others]',
-           '$temp_data  = sum($bphs_out + $others_out)')
+           '$temp_data  = sum($ths_out + $others_out)')
 
 # On every step, sum inputs, push sum to end of output vector
 s.add_rule('update',
