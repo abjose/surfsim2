@@ -43,5 +43,4 @@ in a random direction? Just define another Layer? Or even could have a
 "JiggleLayer" which can be passed another layer and just redefines its
 step function or something...
 -bar?
--
 """

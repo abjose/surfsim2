@@ -22,8 +22,6 @@ TODO: Come up with 'rules' on how to use things. For example, seeming like
       referencing them...and don't connect things before initializing...
 TODO: If going to have many things that take a (list of) input vectors but need
       to operate on only a single output vector...better way of doing?
-TODO: Would be nice to add something that catches exceptions when ExecSteps
-      or Constraints don't work and tells you what the string is. 
 TODO: Have warnings when variables are made without being prepended by $ or 
       other?
 TODO: Why is nothing shown for initialization during copies?
