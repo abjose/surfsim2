@@ -54,6 +54,7 @@ class Context(object):
         self.init_batches = ['init']
         self.step_batches = ['interact', 'update']
         self.batches = self.init_batches + self.step_batches # TODO: ehhhhhh
+        self.connections  = ['outgoing', 'incoming']
         #self.curr_batch = 'init'
     
     def init_simulation(self):
@@ -107,7 +108,7 @@ class Context(object):
         dest = None
         args = []
         for line in s:
-            if line in self.batches + [eof]:
+            if line in self.batches + self.connections + [eof]:
                 # add previous rule and start a new one
                 if dest != None:
                     self.add_rule(dest, *args)
