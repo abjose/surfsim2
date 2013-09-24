@@ -178,18 +178,13 @@ class Context(object):
         for s in source_leaves:
             for t in target_leaves:
                 # note that in each instance you pass an 'other'
-                # THINK THIS IS WRONG - shouldn't it be 'all(...)'?
+                # remember that each add_rule is individuall AND'd, each 
+                # separate one is OR'd this way.
                 s_c = any([rule.satisfied_by(s, t) for rule in s.out_rules])
                 t_c = any([rule.satisfied_by(t, s) for rule in t.in_rules])
                 # TODO: Instead of disjunction, could do conjunction unless
                 # either has no rules specified, in which case disjunction? So 
                 # basically just connect if all existing rules are satisfied...
-                #print 'comparing nodes'
-                #print s.name
-                #print t.name
                 if s_c or t_c:
                     # TODO: make this print node attributes?
-                    #print 'connection made!'
                     s.cg.add_edge(s,t)
-
-
