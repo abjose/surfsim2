@@ -14,28 +14,16 @@ Things to add...
 
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
-__all__ = ['dist', 'flip_dist', 'rand', 'rand_centered', 
+__all__ = ['dist', 'rand', 'rand_centered', 
            'hump', 'biphasic', 'exponential', 'threshold',
            'DoG_weight',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
-           'InvertingSinusoidStim', 'BarStim', 'FullFieldStim']
+           'InvertingSinusoidStim', 'BarStim', 'FullFieldStim',
+           'DoG_hump_cell']
 
 def dist(a, b):
-    #print a
-    #print b
-    #print np.linalg.norm(np.array(a) - np.array(b))
-    #raw_input()
     return np.linalg.norm(np.array(a) - np.array(b))
-
-def flip_dist(a, b, thresh):
-    # positive if inside thresh, negative if not
-    # note...not actual distance...
-    dist = np.linalg.norm(np.array(a) - np.array(b))
-    #if dist > thresh:
-    #    return -1 + 1./(1.+dist)
-    #return 1./(1.+dist)
-    return 1
 
 def rand(a=0, b=1):
     # return random float in [a,b)
@@ -50,8 +38,8 @@ def hump(size, a, b, c, d, normalize=False):
     t = np.arange(size)
     #IRF = (2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
     IRF = a*(t**b)*np.exp(c*-t**d)
-    plt.plot(IRF)
-    plt.show()
+    #plt.plot(IRF)
+    #plt.show()
     if normalize:
         return IRF / sum(IRF)
     return IRF
@@ -125,65 +113,122 @@ def verify_single(array):
     return array
 
 
-def DoG_hump_cell(grid, connect_to, connect_dist):
-    """ Create a slightly customized cell. """
-    cell = "init\n\ 
-           $x, $y = "+grid+".get_next()\n\
-           $init_data($output_length)\n\
-           $irf = hump($kernel_length, 1)\n\ WRONGGGGG
+def DoG_hump(grid, connections):
+    """ Create a slightly customized cell. Note that connect_dist will also
+        be used as the distance for choosing a weight... Connect_to should
+        be a list. """
+    cell  = 'init\n'
+    cell += '$x, $y = '+grid+'.get_next()\n'
+    cell += '$init_data($output_length)\n'
+    cell += '$irf = hump($kernel_length, 1,1,.6,1)\n' #consider different params
+    cell += '$preds  = $get_predecessors()\n'
 
-           interact\n\
-           $temp_data = $dot_input()\n\
 
-           update\n\
-           $append_data($temp_data)\n\
-           $clean_data($output_length)\n\
+    # AHHH slightly more complicated considering you need to get incoming
+    # stuff too hand have different dists and weights for both and stuff?
+    # so...need multiple IRFs? Ehh, I don't think that's right...
+    
+    cell += '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $preds]\n'
+    cell += '$weights = [DoG_weight(d, '+connect_dist+') for d in $dists]\n'
 
-           outgoing\n\
-           other.name == '"+ connect_to +"'\n\
-           dist((other.x, other.y), ($x, $y)) < "+connect_dist
+    cell += 'interact\n'
+    cell += '$preds_out = [w*p.get_output() for p,w in zip($preds, $weights)]\n'
+    cell += '$others_out = [p.get_output() for p in $others]\n'
+    cell += '$temp_data  = sum($preds_out + $others_out)\n'
+
+    cell += 'update\n'
+    cell += '$set_data($temp_data)\n'
+    cell += '$clean_data($output_length)\n'
+
+    for target in connect_to:
+        cell += 'outgoing\n'
+        cell += 'other.name == "'+ connect_to +'"\n'
+        # want separate connect_dists for each connect_to? Just have tuples
+        # want to verify shared parents?
+        cell += 'dist((other.x, other.y), ($x, $y)) < '+connect_dist+'\n'
+    
     return cell
 
+"""
+to handle incoming connections, need:
+name of predecessor
+relevant IRF
+weighting function (then weights will become a list of lists, or maybe tuple of lists)
+max connection distance
+to make outgoing connections, need:
+connection target
+....also connection distance
+"""
 
 
+def DoG_hump_disc(IRF, input_attributes, connections):
+    """ A DoG + hump unit that also discriminates inputs ... 
+        input_attributes is (pred name, weight func, max dist) """
 
-# set up sum
-# remember to handle inputs differently...
-s.add_node('$name = "sum"')
-s.set_focus('$name == "sum"')
-s.add_rule('init', '$init_data($output_length)')
+    # init
+    # generate unit lists and weights for each input
 
-# also initialize some stuff for use during update
-s.add_rule('init',
-           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
-           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
-           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
-           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]')
-# don't need others, don't think
-
-
-# get and weight inputs
-# TODO: don't need to sum entire vectors every time...
-s.add_rule('interact',
-           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
-           '$others_out = [p.get_output() for p in $others]',
-           '$temp_data  = sum($bphs_out + $others_out)')
-
-s.add_rule('update',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-
-# want to make connections to thresh
-s.add_rule('outgoing',
-           'other.name == "thresh"',
-           '$parent() == other.parent()') # want to verify shared parents?
-# Don't have to worry about getting connections from biphasics - already handled
+    # interact
+    # get all outputs from all input units, convolve with IRF and multiply by 
+    # weight based on distance
+    
+    # update
+    # sum all the inputs
 
 
+    cell  = 'init\n'
+    cell += '$x, $y = '+grid+'.get_next()\n'
+    cell += '$init_data($output_length)\n'
+
+    # need to take input_attributes and get a list of tuples of relevant 
+    # units, dist, weight...
+    # or not and could just prepend name or something
+    for name, weighting, max_dist in input_attributes:
+        n = '$'+name
+        preds = 'p for p in $get_predecessors() if p.name == ' #ehhhhh
+        cell += n+'_units = ['+preds+'"'name+'"]\n'
+        cell += n+'_dists = [dist((p.x, p.y), ($x, $y)) for p in '+n+'_units]'
+        cell += n+'_weights= [DoG_weight(d, '+max_dist+') for d in '+n+'_dists]'
+    
+    #cell += '$irf = hump($kernel_length, 1,1,.6,1)\n' # different params?
+    #cell += '$preds  = $get_predecessors()\n'
 
 
+    # AHHH slightly more complicated considering you need to get incoming
+    # stuff too and have different dists and weights for both and stuff?
+    # so...need multiple IRFs? Ehh, I don't think that's right...
+    
+    cell += '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $preds]\n'
+    cell += '$weights = [DoG_weight(d, '+connect_dist+') for d in $dists]\n'
 
+    cell += 'interact\n'
 
+    # now need to do interact step for each
+    for name, IRF, weighting, max_dist in input_attributes:
+        n = '$'+name
+        in_combo = 'for p,w in zip('+n+'_units, '+n+'_weights)'
+        cell += n+'_out = [w*p.get_output() '+combo']\n'
+        # wuh, need IRF? 
+        # I think so...need to convolve input then add
+        # because combining so many steps now
+        # just convolve before? you weight...
+
+    cell += '$preds_out = [w*p.get_output() for p,w in zip($preds, $weights)]\n'
+    cell += '$others_out = [p.get_output() for p in $others]\n'
+    cell += '$temp_data  = sum($preds_out + $others_out)\n'
+
+    cell += 'update\n'
+    cell += '$set_data($temp_data)\n'
+    cell += '$clean_data($output_length)\n'
+
+    for target in connect_to:
+        cell += 'outgoing\n'
+        cell += 'other.name == "'+ connect_to +'"\n'
+        # want separate connect_dists for each connect_to? Just have tuples
+        # want to verify shared parents?
+        cell += 'dist((other.x, other.y), ($x, $y)) < '+connect_dist+'\n'
+    
+    return cell
 
 
 
@@ -334,9 +379,4 @@ if __name__=='__main__':
     #print DoG(29, 2, 7)
     #print DoG_weight(1,20,50,2.5,15)
     #print DoG_weight(1,5)
-    #hump(100, 1, 1, .05, 1)
-    a = """
-        Hello there
-        How are you
-        """
-    print repr(a.strip())
+    hump(10, 1, 1, .6, 1)
