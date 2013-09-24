@@ -167,6 +167,7 @@ s.copy_node(N=399)
 s.set_focus('parent')
 
 
+
 # add amacrines (connect from bipolars in proper radius
 s.add_node('$name = "biphasic"')
 s.set_focus('$name == "biphasic"')
