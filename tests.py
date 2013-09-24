@@ -182,7 +182,6 @@ s.add_rule('interact',
 s.add_rule('update',
            '$set_data($temp_data)',
            '$clean_data($output_length)')
-           #'print $get_output()')
 
 # want to make connections to thresh
 s.add_rule('outgoing',
@@ -386,12 +385,6 @@ s.set_focus('$name == "stimulus"')
 stim = s.focus
 
 s.set_focus('root')
-
-
-# NOTE: (for convolution) only need extension on one side - because IRF makes 
-#       point at only one side
-# TODO: biphasic should 'value' recent time more
-
 
 
 
