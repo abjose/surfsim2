@@ -100,6 +100,24 @@ class Context(object):
     def copy_node(self, N=1):
         self.focus.copy(N)
 
+    def parse_rule(self, s):
+        # split into lines and remove whitespace
+        eof = ''
+        s = [t.strip() for t in s.strip().split('\n')] + [eof] # ...hack
+        dest = None
+        args = []
+        for line in s:
+            if line in self.batches + [eof]:
+                # add previous rule and start a new one
+                if dest != None:
+                    self.add_rule(dest, *args)
+                dest = line
+                args = []
+            else:
+                # otherwise aggregate new rule
+                args.append(line)
+                
+
     def add_rule(self, dest, *args):
         """ Add rule to node currently in focus. """
         r = list(args)
