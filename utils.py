@@ -125,6 +125,69 @@ def verify_single(array):
     return array
 
 
+def DoG_hump_cell(grid, connect_to, connect_dist):
+    """ Create a slightly customized cell. """
+    cell = "init\n\ 
+           $x, $y = "+grid+".get_next()\n\
+           $init_data($output_length)\n\
+           $irf = hump($kernel_length, 1)\n\ WRONGGGGG
+
+           interact\n\
+           $temp_data = $dot_input()\n\
+
+           update\n\
+           $append_data($temp_data)\n\
+           $clean_data($output_length)\n\
+
+           outgoing\n\
+           other.name == '"+ connect_to +"'\n\
+           dist((other.x, other.y), ($x, $y)) < "+connect_dist
+    return cell
+
+
+
+
+# set up sum
+# remember to handle inputs differently...
+s.add_node('$name = "sum"')
+s.set_focus('$name == "sum"')
+s.add_rule('init', '$init_data($output_length)')
+
+# also initialize some stuff for use during update
+s.add_rule('init',
+           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
+           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
+           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
+           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]')
+# don't need others, don't think
+
+
+# get and weight inputs
+# TODO: don't need to sum entire vectors every time...
+s.add_rule('interact',
+           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
+           '$others_out = [p.get_output() for p in $others]',
+           '$temp_data  = sum($bphs_out + $others_out)')
+
+s.add_rule('update',
+           '$set_data($temp_data)',
+           '$clean_data($output_length)')
+
+# want to make connections to thresh
+s.add_rule('outgoing',
+           'other.name == "thresh"',
+           '$parent() == other.parent()') # want to verify shared parents?
+# Don't have to worry about getting connections from biphasics - already handled
+
+
+
+
+
+
+
+
+
+
 class BaseStructure(object):
     
     def __init__(self):
