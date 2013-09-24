@@ -72,14 +72,32 @@ s.add_rule('update',
 
 
 
+
+
+
+
 # add a point of stimulus and change focus
 s.add_node('$name = "stim_point"')
 s.set_focus('$name == "stim_point"')
 
+
+# test parse_rule
+test_rules = """
+init
+$x, $y = $stim_grid.get_next()
+$init_data($output_length)
+interact
+$temp_data = $stim_data[$x][$y]
+update
+$append_data($temp_data)
+$clean_data($output_length)
+"""
+s.parse_rule(test_rules)
+
+"""
 # make stim_point read from its associated position in parent's stimulus matrix
 s.add_rule('init', 
            '$x, $y = $stim_grid.get_next()',
-           'print $x, $y',
            '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $stim_data[$x][$y]')
@@ -87,6 +105,8 @@ s.add_rule('update',
            #'print "TEMP_DATA: ", $temp_data',
            '$append_data($temp_data)',
            '$clean_data($output_length)')
+"""
+
 
 # make some stim_point copies...should technically make lots more than 10...
 #s.set_focus('parent')
