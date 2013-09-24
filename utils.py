@@ -15,7 +15,7 @@ Things to add...
 # does this need to be in a class?
 # no...also, this technically isn't necessary.
 __all__ = ['dist', 'flip_dist', 'rand', 'rand_centered', 
-           'biphasic', 'exponential', 'threshold',
+           'hump', 'biphasic', 'exponential', 'threshold',
            'DoG_weight',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
@@ -45,7 +45,19 @@ def rand_centered(c, r):
     # return random float centered on c with radius r
     return 2*abs(r)*np.random.rand() - r + c
 
+def hump(size, a, b, c, d, normalize=False):
+    # t*exp(-t) with amplitude A, 
+    t = np.arange(size)
+    #IRF = (2*(t**2)*np.exp(1.25*-t) - 0.005*(t**6)*np.exp(1*-t))
+    IRF = a*(t**b)*np.exp(c*-t**d)
+    plt.plot(IRF)
+    plt.show()
+    if normalize:
+        return IRF / sum(IRF)
+    return IRF
+
 def biphasic(size, A):
+    #TODO: define this in terms of humps
     # initalize a biphasic irf of size length and A amplitude
     # for testing: identity irf
     #return np.array([1])
@@ -62,7 +74,6 @@ def biphasic(size, A):
     #plt.plot(t,IRF)
     #plt.show()
     # TODO: for debugging could have this plot IRF along with A or something?
-    # consider flipping this to see if that fixed flipping problem?
     return IRF
 
 def exponential(size):
@@ -259,4 +270,10 @@ if __name__=='__main__':
     #plt.show()
     #print DoG(29, 2, 7)
     #print DoG_weight(1,20,50,2.5,15)
-    print DoG_weight(1,5)
+    #print DoG_weight(1,5)
+    #hump(100, 1, 1, .05, 1)
+    a = """
+        Hello there
+        How are you
+        """
+    print repr(a.strip())
