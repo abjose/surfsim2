@@ -27,6 +27,7 @@ TODO: Have warnings when variables are made without being prepended by $ or
 TODO: Why is nothing shown for initialization during copies?
 TODO: Could....add a second init step so there's one before connections
       and one after?
+TODO: want to change copy_node so that it takes constraints?
 """
 
 # create context
