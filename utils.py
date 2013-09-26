@@ -16,11 +16,11 @@ Things to add...
 # no...also, this technically isn't necessary.
 __all__ = ['dist', 'rand', 'rand_centered', 
            'hump', 'biphasic', 'exponential', 'threshold',
-           'DoG_weight',
+           'DoG_weight', 'gauss_weight',
            'verify_single', 'Grid', 
            'SinusoidStim', 'JigglySinusoidStim', 'SquareWaveStim',
            'InvertingSinusoidStim', 'BarStim', 'FullFieldStim',
-           'DoG_hump_cell']
+           'DoG_hump']
 
 def dist(a, b):
     return np.linalg.norm(np.array(a) - np.array(b))
@@ -75,10 +75,14 @@ def exponential(size):
     return IRF[::-1] * 0 # TURNED OFF
 
 def gaussian(size, std):
-    g = scipy.signal.gaussian(size, std)
+    g = scipy.signal.gaussian(size*2, std)[size:]
     #plt.plot(g)
     #plt.show()
     return g
+
+def gauss_weight(d=1, max_d=10, size=100, std=15):
+    ind = (float(dist)/(max_dist+1)) * size
+    return gaussian(size, std)[ind]
 
 def DoG(size, s1, s2):
     g = (gaussian(size*2, s1) - (.5*gaussian(size*2, s2)))[size:]
@@ -113,42 +117,6 @@ def verify_single(array):
     return array
 
 
-def DoG_hump(grid, connections):
-    """ Create a slightly customized cell. Note that connect_dist will also
-        be used as the distance for choosing a weight... Connect_to should
-        be a list. """
-    cell  = 'init\n'
-    cell += '$x, $y = '+grid+'.get_next()\n'
-    cell += '$init_data($output_length)\n'
-    cell += '$irf = hump($kernel_length, 1,1,.6,1)\n' #consider different params
-    cell += '$preds  = $get_predecessors()\n'
-
-
-    # AHHH slightly more complicated considering you need to get incoming
-    # stuff too hand have different dists and weights for both and stuff?
-    # so...need multiple IRFs? Ehh, I don't think that's right...
-    
-    cell += '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $preds]\n'
-    cell += '$weights = [DoG_weight(d, '+connect_dist+') for d in $dists]\n'
-
-    cell += 'interact\n'
-    cell += '$preds_out = [w*p.get_output() for p,w in zip($preds, $weights)]\n'
-    cell += '$others_out = [p.get_output() for p in $others]\n'
-    cell += '$temp_data  = sum($preds_out + $others_out)\n'
-
-    cell += 'update\n'
-    cell += '$set_data($temp_data)\n'
-    cell += '$clean_data($output_length)\n'
-
-    for target in connect_to:
-        cell += 'outgoing\n'
-        cell += 'other.name == "'+ connect_to +'"\n'
-        # want separate connect_dists for each connect_to? Just have tuples
-        # want to verify shared parents?
-        cell += 'dist((other.x, other.y), ($x, $y)) < '+connect_dist+'\n'
-    
-    return cell
-
 """
 to handle incoming connections, need:
 name of predecessor
@@ -161,73 +129,50 @@ connection target
 """
 
 
-def DoG_hump_disc(IRF, input_attributes, connections):
+def DoG_hump(grid, IRF, input_attributes, connections):
     """ A DoG + hump unit that also discriminates inputs ... 
-        input_attributes is (pred name, weight func, max dist) """
+        'input_attributes' is (pred name, weight func, max dist). 
+        'connecitions' is (name, max dist)"""
 
     # init
+    cell  = 'init\n'
+    cell += '$x, $y = '+grid+'.get_next()\n'
+    cell += '$irf = '+IRF+'\n'
+    cell += '$init_data($output_length)\n'
     # generate unit lists and weights for each input
+    for name, w, max_dist in input_attributes:
+        n = '$'+name
+        preds = 'p for p in $get_predecessors() if p.name == ' #ehhhhh
+        cell += n+'_units = ['+preds+'"'+name+'"]\n'
+        cell += n+'_dists = [dist((p.x, p.y), ($x, $y)) for p in '+n+'_units]\n'
+        cell += n+'_weights=['+w+' d=di) for di in '+n+'_dists]\n'
 
     # interact
     # get all outputs from all input units, convolve with IRF and multiply by 
-    # weight based on distance
-    
-    # update
-    # sum all the inputs
-
-
-    cell  = 'init\n'
-    cell += '$x, $y = '+grid+'.get_next()\n'
-    cell += '$init_data($output_length)\n'
-
-    # need to take input_attributes and get a list of tuples of relevant 
-    # units, dist, weight...
-    # or not and could just prepend name or something
-    for name, weighting, max_dist in input_attributes:
-        n = '$'+name
-        preds = 'p for p in $get_predecessors() if p.name == ' #ehhhhh
-        cell += n+'_units = ['+preds+'"'name+'"]\n'
-        cell += n+'_dists = [dist((p.x, p.y), ($x, $y)) for p in '+n+'_units]'
-        cell += n+'_weights= [DoG_weight(d, '+max_dist+') for d in '+n+'_dists]'
-    
-    #cell += '$irf = hump($kernel_length, 1,1,.6,1)\n' # different params?
-    #cell += '$preds  = $get_predecessors()\n'
-
-
-    # AHHH slightly more complicated considering you need to get incoming
-    # stuff too and have different dists and weights for both and stuff?
-    # so...need multiple IRFs? Ehh, I don't think that's right...
-    
-    cell += '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $preds]\n'
-    cell += '$weights = [DoG_weight(d, '+connect_dist+') for d in $dists]\n'
-
+    # proper weight based on distance
     cell += 'interact\n'
-
-    # now need to do interact step for each
-    for name, IRF, weighting, max_dist in input_attributes:
+    cell += '$all_outs = []\n' #HACK. Also, don't really need $
+    for name, w, max_dist in input_attributes:
         n = '$'+name
-        in_combo = 'for p,w in zip('+n+'_units, '+n+'_weights)'
-        cell += n+'_out = [w*p.get_output() '+combo']\n'
-        # wuh, need IRF? 
-        # I think so...need to convolve input then add
-        # because combining so many steps now
-        # just convolve before? you weight...
+        combo = 'for p,w in zip('+n+'_units, '+n+'_weights)'
+        cell += n+'_out = [w*np.convolve(p.get_output(), $irf) '+combo+']\n' #??
+        cell += '$all_outs.append('+n+'_out)\n'
+    cell += '$temp_data = np.sum($all_outs, 0)\n' #??
 
-    cell += '$preds_out = [w*p.get_output() for p,w in zip($preds, $weights)]\n'
-    cell += '$others_out = [p.get_output() for p in $others]\n'
-    cell += '$temp_data  = sum($preds_out + $others_out)\n'
-
+    # update
     cell += 'update\n'
-    cell += '$set_data($temp_data)\n'
+    cell += '$set_data($temp_data)\n' # can just update most recent?
     cell += '$clean_data($output_length)\n'
 
-    for target in connect_to:
+    # make outgoing connections
+    for target, dist in connections:
         cell += 'outgoing\n'
-        cell += 'other.name == "'+ connect_to +'"\n'
-        # want separate connect_dists for each connect_to? Just have tuples
+        #cell += 'other.name == "'+ target +'"\n'
         # want to verify shared parents?
-        cell += 'dist((other.x, other.y), ($x, $y)) < '+connect_dist+'\n'
+        cell += 'dist((other.x, other.y), ($x, $y)) < '+ dist +'\n'
     
+    #print cell
+    #raw_input()
     return cell
 
 
@@ -379,4 +324,5 @@ if __name__=='__main__':
     #print DoG(29, 2, 7)
     #print DoG_weight(1,20,50,2.5,15)
     #print DoG_weight(1,5)
-    hump(10, 1, 1, .6, 1)
+    #hump(10, 1, 1, .6, 1)
+    print gaussian_weight(2,10)

@@ -6,28 +6,9 @@ import random
 from context import Context
 import matplotlib.pyplot as plt
 import numpy as np
+from utils import DoG_hump
 
 """ NOTES    
-TODO: put useful Es and Cs into a file somewhere
-      maybe make them into functions so you can modify their insides :O
-NOTE: Problem that with *args can only do ALL conjunctions or ALL disjunctions?
-NOTE: Note that for most things that need to be accessed from parents, easy
-      to just do self.(whatever)!! so $parent.rule = $rule if don't overwrite
-TODO: Come up with 'rules' on how to use things. For example, seeming like
-      you must re-initialize everything before expecting it to work correctly,
-      and you (maybe) can only do reference by name before initializing, and
-      (maybe) must force things to only be 'dependent' on things higher in
-      their own hierarchy (so don't initialize based on some random other 
-      thing's position or something), and should initialize variables before
-      referencing them...and don't connect things before initializing...
-TODO: If going to have many things that take a (list of) input vectors but need
-      to operate on only a single output vector...better way of doing?
-TODO: Have warnings when variables are made without being prepended by $ or 
-      other?
-TODO: Why is nothing shown for initialization during copies?
-TODO: Could....add a second init step so there's one before connections
-      and one after?
-TODO: want to change copy_node so that it takes constraints?
 """
 
 # create context
@@ -38,27 +19,19 @@ s.add_rule('init',
            # NOTE: these are one longer than you think - fix?
            '$kernel_length = 10',
            '$output_length = 50',
-           '$bcm_radius = 4.',
            '$stim_size  = 20',
-           '$max_delay  = 3', 
+           '$p_h_radius = 500.',
+           '$p_b_radius = 500.',
+           '$h_b_radius = 500.',
+           '$b_a_radius = 500.',
+           '$b_g_radius = 500.',
+           '$a_g_radius = 500.',
            '$stim_grid = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            '$p_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            '$h_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            '$b_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            '$a_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
            '$g_grid  = Grid(xl=$stim_size, yl=$stim_size, dx=1, dy=1)',
-           )
-
-
-
-
-
-# add a container for stimulus
-s.add_node('$name = "stimulus"')
-s.set_focus('$name == "stimulus"')
-
-# also maintain a matrix of stimulus values for stimulus points to access
-s.add_rule('init',
            #'$stim = SinusoidStim($stim_size, $stim_size)', # why two?
            #'$stim = JigglySinusoidStim($stim_size, 10)',
            #'$stim = InvertingSinusoidStim($stim_size, 20)',
@@ -70,376 +43,103 @@ s.add_rule('init',
 s.add_rule('update',
            '$stim.step()', 
            '$stim_data = $stim.output')
-s.set_focus('parent')
 
 
 
 # add photoreceptors (don't specify connections?)
 s.add_node('$name = "p_layer"')
 s.set_focus('$name == "p_layer"')
+s.add_node('$name = "photoreceptor"')
+s.set_focus('$name == "photoreceptor"')
 
-# read from associated position in parent's stimulus matrix
+# read from associated position in stimulus matrix
 s.add_rule('init', 
            '$x, $y = $stim_grid.get_next()',
-           #'print $x, $y',
            '$init_data($output_length)')
 s.add_rule('interact',
            '$temp_data = $stim_data[$x][$y]')
 s.add_rule('update',
-           #'print "TEMP_DATA: ", $temp_data',
            '$append_data($temp_data)',
            '$clean_data($output_length)')
+
+# ADD APPROPRIATE IRF!!
+
+s.add_rule('outgoing',
+           'other.name == "horizontal"',
+           'dist((other.x, other.y), ($x, $y)) < $p_h_radius')
+s.add_rule('outgoing',
+           'other.name == "bipolar"',
+           'dist((other.x, other.y), ($x, $y)) < $p_b_radius')
 
 # make some stim_point copies
-s.copy_node(N=399)
-s.set_focus('parent')
+s.copy_node(N=5) #399
 
 
 
-# add horizontals (connect from photorceptors in proper radius)
+# add photoreceptors???
+
+# add horizontals
+s.set_focus('root')
 s.add_node('$name = "h_layer"')
 s.set_focus('$name == "h_layer"')
-
-# make biphasic read from associated stim_point
-s.add_rule('init', 
-           '$x, $y = $bph_grid.get_next()',
-           '$init_data($output_length)')
-# Add a hump irf...unity amplitude for now
-s.add_rule('init', 
-           '$irf = hump($kernel_length, 1)')
-
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
+s.add_node('$name = "horizontal"')
+s.set_focus('$name == "horizontal"')
+h_irf = '$irf = -1*hump($kernel_length, 1,1,.6,1)' # different params?
+p_h_weight = '0.5*gauss_weight(std=40, max_d=$p_h_radius, ' #omg
+h_ia  = [('photoreceptor', p_h_weight, '$p_h_radius')]
+h_c   = [('bipolar', '$h_b_radius')]
+s.parse_rule(DoG_hump('$h_grid', h_irf, h_ia, h_c))
 s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
+           'print "out:", $get_output()')
+s.copy_node(N=5) # 399
+
+# add bipolars
+s.set_focus('root')
+s.add_node('$name = "b_layer"')
+s.set_focus('$name == "b_layer"')
+s.add_node('$name = "bipolar"')
+s.set_focus('$name == "bipolar"')
+b_irf = '$irf = hump($kernel_length, 1,1,.6,1)' # different params?
+p_b_weight = '0.5*gauss_weight(std=15, max_d=$p_b_radius, ' #omg
+h_b_weight = '0.5*gauss_weight(std=40, max_d=$h_b_radius, ' #omg
+b_ia  = [('photoreceptor', p_b_weight, '$p_b_radius'),
+         ('horizontal', h_b_weight, '$h_b_radius')]
+b_c   = [('amacrine', '$b_a_radius'),
+         ('ganglion', '$b_g_radius')]
+s.parse_rule(DoG_hump('$b_grid', b_irf, b_ia, b_c))
+s.copy_node(N=5)
+
+# add amacrines
+s.set_focus('root')
+s.add_node('$name = "a_layer"')
+s.set_focus('$name == "a_layer"')
+s.add_node('$name = "amacrine"')
+s.set_focus('$name == "amacrine"')
+a_irf = '$irf = -1*hump($kernel_length, 1,1,.6,1)' # different params?
+b_a_weight = '0.5*gauss_weight(std=40, max_d=$b_a_radius, ' #omg
+a_ia  = [('bipolar', b_a_weight, '$b_a_radius')]
+a_c   = [('ganglion', '$a_g_radius')]
+s.parse_rule(DoG_hump('$a_grid', a_irf, a_ia, a_c))
+s.copy_node(N=5)
+
+# add ganglion
+# NOTE: JUST HAVE ONE in center!!
+s.set_focus('root')
+s.add_node('$name = "g_layer"')
+s.set_focus('$name == "g_layer"')
+s.add_node('$name = "ganglion"')
+s.set_focus('$name == "ganglion"')
+g_irf = '$irf = hump($kernel_length, 1,1,.6,1)' # different params?
+b_g_weight = '0.5*gauss_weight(std=15, max_d=$b_g_radius, ' #omg
+a_g_weight = '0.5*gauss_weight(std=40, max_d=$a_g_radius, ' #omg
+g_ia  = [('bipolar', b_g_weight, '$b_g_radius'),
+         ('amacrine', a_g_weight, '$a_g_radius')]
+g_c   = []
+s.parse_rule(DoG_hump('$g_grid', g_irf, g_ia, g_c))
+s.copy_node(N=5)
 
-# make biphasic read from associated stim_point
-s.add_rule('incoming',
-           "other.name == 'stim_point'",
-           "(other.x, other.y) == ($x, $y)") 
 
-# and connect to BCM sum if closer than bcm_radius. Should do in sum instead?
-s.add_rule('outgoing',
-           'other.name == "sum"',
-           'other.parent().name == "BCM"',
-           'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
 
-# make some copies
-s.copy_node(N=399)
-s.set_focus('parent')
-
-
-
-# add bipolars (connect from photorceptors and horizontals in proper radii)
-s.add_node('$name = "biphasic"')
-s.set_focus('$name == "biphasic"')
-
-# make biphasic read from associated stim_point
-s.add_rule('init', 
-           '$x, $y = $bph_grid.get_next()',
-           '$init_data($output_length)')
-# Add a biphasic irf...unity amplitude for now
-s.add_rule('init', 
-           '$irf = biphasic($kernel_length, 1)')
-
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# make biphasic read from associated stim_point
-s.add_rule('incoming',
-           "other.name == 'stim_point'",
-           "(other.x, other.y) == ($x, $y)") 
-
-# and connect to BCM sum if closer than bcm_radius. Should do in sum instead?
-s.add_rule('outgoing',
-           'other.name == "sum"',
-           'other.parent().name == "BCM"',
-           'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
-
-# make some copies
-s.copy_node(N=399)
-s.set_focus('parent')
-
-
-
-# add amacrines (connect from bipolars in proper radius
-s.add_node('$name = "biphasic"')
-s.set_focus('$name == "biphasic"')
-
-# make biphasic read from associated stim_point
-s.add_rule('init', 
-           '$x, $y = $bph_grid.get_next()',
-           '$init_data($output_length)')
-# Add a biphasic irf...unity amplitude for now
-s.add_rule('init', 
-           '$irf = biphasic($kernel_length, 1)')
-
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# make biphasic read from associated stim_point
-s.add_rule('incoming',
-           "other.name == 'stim_point'",
-           "(other.x, other.y) == ($x, $y)") 
-
-# and connect to BCM sum if closer than bcm_radius. Should do in sum instead?
-s.add_rule('outgoing',
-           'other.name == "sum"',
-           'other.parent().name == "BCM"',
-           'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
-
-# make some copies
-s.copy_node(N=399)
-s.set_focus('parent')
-
-
-
-# add ganglions (connect from bipolars and amacrines in proper radii) 
-s.add_node('$name = "biphasic"')
-s.set_focus('$name == "biphasic"')
-
-# make biphasic read from associated stim_point
-s.add_rule('init', 
-           '$x, $y = $bph_grid.get_next()',
-           '$init_data($output_length)')
-# Add a biphasic irf...unity amplitude for now
-s.add_rule('init', 
-           '$irf = biphasic($kernel_length, 1)')
-
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# make biphasic read from associated stim_point
-s.add_rule('incoming',
-           "other.name == 'stim_point'",
-           "(other.x, other.y) == ($x, $y)") 
-
-# and connect to BCM sum if closer than bcm_radius. Should do in sum instead?
-s.add_rule('outgoing',
-           'other.name == "sum"',
-           'other.parent().name == "BCM"',
-           'dist((other.x, other.y), ($x, $y)) < $bcm_radius') 
-
-# make some copies
-s.copy_node(N=399)
-s.set_focus('parent')
-
-
-
-
-
-
-
-
-
-
-
-
-# Add another node to root to act as the Ganglion Cell Module
-s.set_focus('parent')
-s.set_focus('parent')
-s.add_node('$name = "GCM"')
-s.set_focus('$name == "GCM"')
-
-# Add a grid-positioning rule for BCMs (grid same size as stimulus)
-s.add_rule('init',
-           '$x, $y = $stim_size/2., $stim_size/2.',
-           '$child_grid = Grid(x0=5, y0=5, dx=5, dy=5, xl=$stim_size, yl=$stim_size)')
-           
-
-
-# Add a node to act as a Bipolar Cell Module
-s.add_node('$name = "BCM"')
-s.set_focus('$name == "BCM"')
-
-# Grab position from parent
-s.add_rule('init',
-           '$x, $y = $child_grid.get_next()')
-
-
-
-# set up sum
-# remember to handle inputs differently...
-s.add_node('$name = "sum"')
-s.set_focus('$name == "sum"')
-s.add_rule('init', '$init_data($output_length)')
-
-# also initialize some stuff for use during update
-s.add_rule('init',
-           '$bphs   = [p for p in $get_predecessors() if p.name == "biphasic"]',
-           '$others = [p for p in $get_predecessors() if p.name != "biphasic"]',
-           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $bphs]',
-           '$weights = [DoG_weight(d, $bcm_radius) for d in $dists]')
-
-# get and weight inputs
-# TODO: don't need to sum entire vectors every time...
-s.add_rule('interact',
-           '$bphs_out   = [w*p.get_output() for p,w in zip($bphs, $weights)]',
-           '$others_out = [p.get_output() for p in $others]',
-           '$temp_data  = sum($bphs_out + $others_out)')
-
-s.add_rule('update',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-
-# want to make connections to thresh
-s.add_rule('outgoing',
-           'other.name == "thresh"',
-           '$parent() == other.parent()') # want to verify shared parents?
-# Don't have to worry about getting connections from biphasics - already handled
-
-
-
-# set up thresh
-s.set_focus('parent')
-s.add_node('$name = "thresh"')
-s.set_focus('$name == "thresh"')
-s.add_rule('init', '$init_data($output_length)')
-
-# threshold input vector
-s.add_rule('interact',
-           # TODO: This is an ugly way of doing this
-           '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
-s.add_rule('update',
-           #'print $temp_data',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-
-# add rule to connect to GCM's sum node
-s.add_rule('outgoing',
-           'other.name == "sum"',
-           'other.parent().name == "GCM"',
-           'other.parent() == $parent().parent()')
-
-
-
-# go back to BCM to make exponential feedback between thresh and sum units
-s.set_focus('parent')
-s.add_node('$name = "feedback"')
-s.set_focus('$name == "feedback"')
-s.add_rule('init', '$init_data($output_length)')
-
-# add exponential IRF
-s.add_rule('init',
-           '$irf = exponential($kernel_length)')
-           
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# get input from thresh
-s.add_rule('incoming',
-           'other.name == "thresh"',
-           '$parent() == other.parent()')
-
-# send output to sum
-s.add_rule('outgoing',
-           'other.name == "sum"', 
-           "$parent() == other.parent()") 
-
-
-
-# make some more BCMs
-s.set_focus('parent')
-s.copy_node(N=8)
-
-
-
-# finish out GCM
-s.set_focus('parent')
-
-# add sum to GCM
-s.add_node('$name = "sum"')
-s.set_focus('$name == "sum"')
-s.add_rule('init', '$init_data($output_length)')
-
-# also initialize some stuff for use during update
-s.add_rule('init',
-           '$ths    = [p for p in $get_predecessors() if p.name == "thresh"]',
-           '$others = [p for p in $get_predecessors() if p.name != "thresh"]',
-           '$dists  = [dist((p.x, p.y), ($x, $y)) for p in $ths]',
-           # what max_distance to use?
-           '$weights = [DoG_weight(d, 20) for d in $dists]')
-
-# get and weight inputs
-# TODO: don't need to sum entire vectors every time...
-s.add_rule('interact',
-           '$ths_out    = [w*p.get_output() for p,w in zip($ths, $weights)]',
-           '$others_out = [p.get_output() for p in $others]',
-           '$temp_data  = sum($ths_out + $others_out)')
-
-# On every step, sum inputs, push sum to end of output vector
-s.add_rule('update',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-
-# want to make connections to thresh
-s.add_rule('outgoing',
-           'other.name == "thresh"',
-           '$parent() == other.parent()')
-
-
-
-# add thresh to GCM
-s.set_focus('parent')
-s.add_node('$name = "thresh"')
-s.set_focus('$name == "thresh"')
-s.add_rule('init', '$init_data($output_length)')
-
-# threshold input vector
-s.add_rule('interact',
-           # TODO: This is an ugly way of doing this
-           '$temp_data = threshold(verify_single($get_inputs())[0], 0.)')
-s.add_rule('update',
-           #'print $temp_data',
-           '$set_data($temp_data)',
-           '$clean_data($output_length)')
-
-
-
-# add feedback to GCM
-s.set_focus('parent')
-s.add_node('$name = "feedback"')
-s.set_focus('$name == "feedback"')
-s.add_rule('init', '$init_data($output_length)')
-
-# add exponential IRF
-s.add_rule('init',
-           '$irf = exponential($kernel_length)')
-           
-# use irf to update output vector
-s.add_rule('interact',
-           '$temp_data = $dot_input()')
-s.add_rule('update',
-           '$append_data($temp_data)',
-           '$clean_data($output_length)') 
-
-# get input from thresh
-s.add_rule('incoming',
-           'other.name == "thresh"',
-           '$parent() == other.parent()')
-
-# send output to sum
-s.add_rule('outgoing',
-           'other.name == "sum"', 
-           "$parent() == other.parent()") 
 
 
 
@@ -449,37 +149,36 @@ s.init_simulation()
 
 # make connections between necessary populations
 
-# connect stim_points to biphasics
-#s.connect(['$name == "stimulus"'], 
-#          ['$name == "BCM"']) 
-s.connect(['$name == "stim_point"'], 
-          ['$name == "biphasic"']) 
+# connect photoreceptor to horizontal
+s.connect(['$name == "photoreceptor"'], 
+          ['$name == "horizontal"']) 
 
-# connect biphasics to sums
-s.connect(['$name == "biphasic"'], 
-          ['$name == "sum"'])
+# connect photoreceptor to bipolar
+s.connect(['$name == "photoreceptor"'], 
+          ['$name == "bipolar"']) 
 
-# connect thresh to feedback ..better way of doing both this and next one?
-s.connect(['$name == "thresh"'], 
-          ['$name == "feedback"'])
+# connect horizontal to bipolar
+s.connect(['$name == "horizontal"'], 
+          ['$name == "bipolar"']) 
 
-# connect feedback to sums
-s.connect(['$name == "feedback"'], 
-          ['$name == "sum"'])
+# connect bipolar to amacrine
+s.connect(['$name == "bipolar"'], 
+          ['$name == "amacrine"']) 
 
-# connect sums to thresh
-s.connect(['$name == "sum"'], 
-          ['$name == "thresh"'])
+# connect bipolar to ganglion
+s.connect(['$name == "bipolar"'], 
+          ['$name == "ganglion"']) 
 
-# connect BCM thresh to GCM sum
-# TODO: this is maybe where relative names would be nice...
-s.connect(['$name == "thresh"'], 
-          ['$name == "sum"'])
+# connect amacrine to ganglion
+s.connect(['$name == "amacrine"'], 
+          ['$name == "ganglion"']) 
 
 # Re-initialize entire circuit
-s.init_simulation()
+# need something to reset grids too if doing this...
+#s.init_simulation()
 
 #s.focus.show_cg()
+#s.focus.show_hg()
 
 
 # step the network a few times to 'prime' things
@@ -489,7 +188,7 @@ for i in range(prime_steps):
     s.step_simulation()
 
 
-
+"""
 
 # prepare plotting stuff
 
@@ -560,3 +259,4 @@ for i in range(500):
 plt.ioff()
 
 
+"""
