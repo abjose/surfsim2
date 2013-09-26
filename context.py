@@ -40,6 +40,7 @@ class Context(object):
           connect when, say, trying to connect thresh to feedback? Does
           it get all threshes and all feedbacks and try to connect all multiple
           times?
+    TODO: When you don't initialize before, seems like no copies are made...
     """
 
 
@@ -125,6 +126,8 @@ class Context(object):
         if   dest == 'incoming':
             self.focus.in_rules.append(C(r))
         elif dest == 'outgoing':
+            #print r
+            #raw_input()
             self.focus.out_rules.append(C(r))
         elif dest in self.batches:
             self.focus.batch_steps[dest].append(E(r))
@@ -136,6 +139,7 @@ class Context(object):
                 #       (maybe even just re-init addition)
                 self.focus.initialize()
         else:
+            print 'dest:', dest
             raise Exception("Didn't understand rule destination.")
 
 
@@ -182,6 +186,11 @@ class Context(object):
                 # separate one is OR'd this way.
                 s_c = any([rule.satisfied_by(s, t) for rule in s.out_rules])
                 t_c = any([rule.satisfied_by(t, s) for rule in t.in_rules])
+                #print s.name, t.name
+                #print s_c, t_c
+                #print s.out_rules
+                #print t.in_rules
+                #raw_input()
                 # TODO: Instead of disjunction, could do conjunction unless
                 # either has no rules specified, in which case disjunction? So 
                 # basically just connect if all existing rules are satisfied...
