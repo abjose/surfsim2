@@ -117,17 +117,6 @@ def verify_single(array):
     return array
 
 
-"""
-to handle incoming connections, need:
-name of predecessor
-relevant IRF
-weighting function (then weights will become a list of lists, or maybe tuple of lists)
-max connection distance
-to make outgoing connections, need:
-connection target
-....also connection distance
-"""
-
 
 def DoG_hump(grid, IRF, input_attributes, connections):
     """ A DoG + hump unit that also discriminates inputs ... 
@@ -137,15 +126,22 @@ def DoG_hump(grid, IRF, input_attributes, connections):
     # init
     cell  = 'init\n'
     cell += '$x, $y = '+grid+'.get_next()\n'
-    cell += '$irf = '+IRF+'\n'
+    cell += '$irf = ' + IRF +'\n' 
     cell += '$init_data($output_length)\n'
     # generate unit lists and weights for each input
     for name, w, max_dist in input_attributes:
         n = '$'+name
-        preds = 'p for p in $get_predecessors() if p.name == ' #ehhhhh
-        cell += n+'_units = ['+preds+'"'+name+'"]\n'
+        #preds = 'p for p in $get_predecessors() if p.name == ' #ehhhhh
+        #cell += n+'_units = ['+preds+'"'+name+'"]\n'
+        cell += n+'_units = [p for p in $get_predecessors() if p_name == "'+name+'"]\n'
+        cell += 'print "name:", $name\n'
+        cell += 'print "preds:", $get_predecessors()\n'
+        cell += 'print "units:", '+n+'_units\n'
         cell += n+'_dists = [dist((p.x, p.y), ($x, $y)) for p in '+n+'_units]\n'
-        cell += n+'_weights=['+w+' d=di) for di in '+n+'_dists]\n'
+        cell += 'print "dists:", '+n+'_dists\n'
+        cell += n+'_weights=['+w+'d=di) for di in '+n+'_dists]\n'
+        cell += 'print "weights:", '+n+'_weights\n'
+        cell += 'raw_input()\n'
 
     # interact
     # get all outputs from all input units, convolve with IRF and multiply by 
@@ -155,9 +151,14 @@ def DoG_hump(grid, IRF, input_attributes, connections):
     for name, w, max_dist in input_attributes:
         n = '$'+name
         combo = 'for p,w in zip('+n+'_units, '+n+'_weights)'
+        #cell += 'print "data:", $data\n'
+        #cell += 'print "units:", '+n+'_units\n'
+        #cell += 'print "outputs:", [p.get_output() for p in '+n+'_units]\n'
         cell += n+'_out = [w*np.convolve(p.get_output(), $irf) '+combo+']\n' #??
         cell += '$all_outs.append('+n+'_out)\n'
+        #cell += 'print "all_outs:", $all_outs\n'
     cell += '$temp_data = np.sum($all_outs, 0)\n' #??
+    #cell += 'print "temp_data", $temp_data\n' #??
 
     # update
     cell += 'update\n'

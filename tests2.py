@@ -72,7 +72,7 @@ s.add_rule('outgoing',
            'dist((other.x, other.y), ($x, $y)) < $p_b_radius')
 
 # make some stim_point copies
-s.copy_node(N=5) #399
+#s.copy_node(N=5) #399
 
 
 
@@ -84,14 +84,15 @@ s.add_node('$name = "h_layer"')
 s.set_focus('$name == "h_layer"')
 s.add_node('$name = "horizontal"')
 s.set_focus('$name == "horizontal"')
-h_irf = '$irf = -1*hump($kernel_length, 1,1,.6,1)' # different params?
+h_irf = '-1*hump($kernel_length, 1,1,.6,1)' # different params?
 p_h_weight = '0.5*gauss_weight(std=40, max_d=$p_h_radius, ' #omg
 h_ia  = [('photoreceptor', p_h_weight, '$p_h_radius')]
 h_c   = [('bipolar', '$h_b_radius')]
 s.parse_rule(DoG_hump('$h_grid', h_irf, h_ia, h_c))
 s.add_rule('update',
+           'print "stuff:", $data[-$output_length:]',
            'print "out:", $get_output()')
-s.copy_node(N=5) # 399
+#s.copy_node(N=1) # 399
 
 # add bipolars
 s.set_focus('root')
@@ -99,7 +100,7 @@ s.add_node('$name = "b_layer"')
 s.set_focus('$name == "b_layer"')
 s.add_node('$name = "bipolar"')
 s.set_focus('$name == "bipolar"')
-b_irf = '$irf = hump($kernel_length, 1,1,.6,1)' # different params?
+b_irf = 'hump($kernel_length, 1,1,.6,1)' # different params?
 p_b_weight = '0.5*gauss_weight(std=15, max_d=$p_b_radius, ' #omg
 h_b_weight = '0.5*gauss_weight(std=40, max_d=$h_b_radius, ' #omg
 b_ia  = [('photoreceptor', p_b_weight, '$p_b_radius'),
@@ -107,7 +108,7 @@ b_ia  = [('photoreceptor', p_b_weight, '$p_b_radius'),
 b_c   = [('amacrine', '$b_a_radius'),
          ('ganglion', '$b_g_radius')]
 s.parse_rule(DoG_hump('$b_grid', b_irf, b_ia, b_c))
-s.copy_node(N=5)
+#s.copy_node(N=1)
 
 # add amacrines
 s.set_focus('root')
@@ -115,12 +116,12 @@ s.add_node('$name = "a_layer"')
 s.set_focus('$name == "a_layer"')
 s.add_node('$name = "amacrine"')
 s.set_focus('$name == "amacrine"')
-a_irf = '$irf = -1*hump($kernel_length, 1,1,.6,1)' # different params?
+a_irf = '-1*hump($kernel_length, 1,1,.6,1)' # different params?
 b_a_weight = '0.5*gauss_weight(std=40, max_d=$b_a_radius, ' #omg
 a_ia  = [('bipolar', b_a_weight, '$b_a_radius')]
 a_c   = [('ganglion', '$a_g_radius')]
 s.parse_rule(DoG_hump('$a_grid', a_irf, a_ia, a_c))
-s.copy_node(N=5)
+#s.copy_node(N=1)
 
 # add ganglion
 # NOTE: JUST HAVE ONE in center!!
@@ -129,14 +130,14 @@ s.add_node('$name = "g_layer"')
 s.set_focus('$name == "g_layer"')
 s.add_node('$name = "ganglion"')
 s.set_focus('$name == "ganglion"')
-g_irf = '$irf = hump($kernel_length, 1,1,.6,1)' # different params?
+g_irf = 'hump($kernel_length, 1,1,.6,1)' # different params?
 b_g_weight = '0.5*gauss_weight(std=15, max_d=$b_g_radius, ' #omg
 a_g_weight = '0.5*gauss_weight(std=40, max_d=$a_g_radius, ' #omg
 g_ia  = [('bipolar', b_g_weight, '$b_g_radius'),
          ('amacrine', a_g_weight, '$a_g_radius')]
 g_c   = []
 s.parse_rule(DoG_hump('$g_grid', g_irf, g_ia, g_c))
-s.copy_node(N=5)
+#s.copy_node(N=1)
 
 
 
@@ -175,7 +176,8 @@ s.connect(['$name == "amacrine"'],
 
 # Re-initialize entire circuit
 # need something to reset grids too if doing this...
-#s.init_simulation()
+print "SECOND INIT!!"
+s.init_simulation()
 
 #s.focus.show_cg()
 #s.focus.show_hg()

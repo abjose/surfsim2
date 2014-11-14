@@ -25,6 +25,7 @@ class Node(object):
     TODO: Put various things that should be put in Utils...into utils.
     TODO: Rather than having *args for __init__, could have **kwargs?
     TODO: Add 'batch steps' argument? eh...
+    TODO: Raise an exception instead of returning non in __getattr__ if root
     """
 
     def __init__(self, parent, *args):
@@ -53,6 +54,7 @@ class Node(object):
         parent = self.get_parent()
         if parent != None:
             return eval('parent.' + str(var))
+        print 'WARNING, EVEN ROOT HAD NO VALUE!!' # should just raise exception!
         return None
 
     def initialize(self):
